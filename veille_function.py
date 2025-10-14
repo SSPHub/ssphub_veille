@@ -134,6 +134,9 @@ def clean_conv(file_path):
     func_conv_df['link_text'] = func_conv_df['body'].apply(extract_link_text)
     func_conv_df.dropna(subset='hyperlink', inplace=True)
 
+    # If message is only a link, set body to ''
+    func_conv_df.loc[func_conv_df['hyperlink'] == func_conv_df['body'], ['body']] = ''
+
     # Changing time format to 10 digts
     func_conv_df['origin_server_ts'] = func_conv_df['origin_server_ts'] // 1000
 
@@ -242,6 +245,9 @@ def extract_and_add_to_veille(input_conv_file_path, min_time=0, time_format_date
     # Convert time
     my_conv_df = convert_unix_time_df(my_conv_df)
 
+    # Setting add records to True
+    my_conv_df['Add_records'] = True
+
     add_to_veille(my_conv_df)
 
 
@@ -259,6 +265,7 @@ def extract_max_date():
         >>> extract_max_date()
         np.float64(1760356956.975651)
     """
-    return pd.DataFrame(get_grist_api().fetch_table('Veille'))['Date'].max()
+    df = pd.DataFrame(get_grist_api().fetch_table('Veille'))
+    return df[df['Add_records'] == True]['Date'].max()
 
 
