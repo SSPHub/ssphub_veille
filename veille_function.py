@@ -174,7 +174,7 @@ def add_to_veille(my_conv_df):
     add a dataframe to Veille grist table
 
     Args:
-        a dataframe with records to updated to Veille grist table.
+        a polars dataframe with records to updated to Veille grist table.
         Column names will be renamed to match target table column names.
 
     Returns:
@@ -192,11 +192,11 @@ def add_to_veille(my_conv_df):
             'body': 'Resume',
             'origin_server_ts': 'Date'
     }
-    my_conv_df.rename(columns=variable_mapping, inplace=True)
+    my_conv_df = my_conv_df.rename(variable_mapping)
 
     # Export as dict to export to Grist
-    my_conv_dict = my_conv_df.to_dict(orient='records')
-    get_grist_api().add_records('Veille', my_conv_dict)
+    my_conv_dict = my_conv_df.to_dicts()
+    get_grist_api().add_records('Test', my_conv_dict)
 
 
 def extract_and_add_to_veille(input_conv_file_path = 'ssphub_veille/export.json', min_time="2025-10-15", time_format_date=True):
