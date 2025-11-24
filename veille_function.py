@@ -1,5 +1,6 @@
 import json
 import pandas as pd
+import polars as pl
 from datetime import datetime, timedelta
 import re  # to extract link
 from grist_api import GristDocAPI  # To write into grist doc
@@ -92,13 +93,14 @@ def clean_conv(file_path):
         file_path (string): path to json file to convert.
 
     Returns:
-        A dataframe (pd.Df) with columns : ['link_text', 'hyperlink', 'sender', 'msg_link', 'body', 'origin_server_ts']
+        A dataframe (pl.Df) with columns : ['link_text', 'hyperlink', 'sender', 'msg_link', 'body', 'origin_server_ts']
 
     Example:
         >>> clean_conv('matrix - SSPLab - Veille - Chat Export - 2025-10-13T12-19-53.163Z.json')
                                                      link_text  ... origin_server_ts
         6    Linux a sa réponse à Microsoft Copilot, et ell...  ...       1754574677
     """
+    file_path='ssphub_veille/export.json'
     with open(file_path, mode = 'r') as read_file:
         conv_tchap = json.load(read_file)
 
@@ -116,33 +118,30 @@ def clean_conv(file_path):
         extracted_conv.append(extracted_msg)
 
     # Create a DataFrame
-    func_conv_df = pd.DataFrame(extracted_conv)
+    func_conv_df = pl.DataFrame(extracted_conv)
 
-    # Tchap Link
-    func_conv_df['msg_link'] = 'https://tchap.gouv.fr/#/room/' + func_conv_df['room_id'] + '/' + func_conv_df['event_id']  
-
-    # Who sent the message
-    func_conv_df['sender'] = (func_conv_df['sender'].str.removeprefix('@')
-                                                .str.rpartition('-').iloc[:, 0]
-                                                .str.replace('.', ' ')
-                                                .str.title()
-                            )
-
-
-    # Extract href
-    func_conv_df['hyperlink'] = func_conv_df['body'].apply(extract_link)
-    func_conv_df['link_text'] = func_conv_df['body'].apply(extract_link_text)
-    func_conv_df.dropna(subset='hyperlink', inplace=True)
-
-    # If message is only a link, set body to ''
-    func_conv_df.loc[func_conv_df['hyperlink'] == func_conv_df['body'], ['body']] = ''
-
-    # Changing time format to 10 digts
-    func_conv_df['origin_server_ts'] = func_conv_df['origin_server_ts'] // 1000
+    # Streamlining data
+    func_conv_df = (
+        func_conv_df\
+            .with_columns(
+                msg_link = 'https://tchap.gouv.fr/#/room/' + pl.col('room_id') + '/' + pl.col('event_id'),  # Creating link to tchap msg
+                # Who sent the message
+                sender = pl.col('sender').str.extract(pattern=r'@(.*?)-')  # Turn @prenom.nom-insee.frBLABLA into prenom.nom
+                                        .str.replace(r'\.', ' ')  # Turn prenom.nom into prenom nom
+                                        .str.to_titlecase(),  # Turn prenom nom into Prenom Nom
+                hyperlink = pl.col('body').map_elements(lambda x: extract_link(x)),  # Extract hyperlink : [my_link](https://mylink) -> https://mylink
+                link_text = pl.col('body').map_elements(lambda x: extract_link_text(x))  # Extract hyperlink title or text : [my_link](https://mylink) -> my_link
+            )
+            .drop_nulls(subset='hyperlink')
+            .with_columns(
+                body = pl.when(pl.col('body') == pl.col('hyperlink')).then(None).otherwise('body'),  # If message is only a link, set body to ''
+                origin_server_ts = pl.col("origin_server_ts") // 1000  ## Changing time format from 13 to 10 digts
+            )
+    )
 
     cols_to_keep = ['link_text', 'hyperlink', 'sender', 'msg_link', 'body', 'origin_server_ts']
 
-    func_conv_df = func_conv_df[cols_to_keep]
+    func_conv_df = func_conv_df.select(cols_to_keep)
 
     return func_conv_df
 
