@@ -244,9 +244,14 @@ def extract_max_date():
 
     Example:
         >>> extract_max_date()
-        np.float64(1760356956.975651)
+        ┌──────────┐
+        │ Date     │
+        │ ---      │
+        │ f64      │
+        ╞══════════╡
+        │ 1.7603e9 │
+        └──────────┘
     """
-    df = pd.DataFrame(get_grist_api().fetch_table('Veille'))
-    return df[df['Add_records'] == True]['Date'].max()
-
+    df = pl.DataFrame(get_grist_api().fetch_table('Veille'))
+    return df.filter(pl.col('Add_records') == True).select(pl.max('Date'))
 
