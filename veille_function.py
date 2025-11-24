@@ -169,7 +169,7 @@ def get_grist_api():
     return GristDocAPI(DOC_ID, server=SERVER)
 
 
-def add_to_veille(my_conv_df):
+def add_to_veille(my_conv_df, target_table='Test'):
     """
     add a dataframe to Veille grist table
 
@@ -196,10 +196,10 @@ def add_to_veille(my_conv_df):
 
     # Export as dict to export to Grist
     my_conv_dict = my_conv_df.to_dicts()
-    get_grist_api().add_records('Test', my_conv_dict)
+    get_grist_api().add_records(target_table, my_conv_dict)
 
 
-def extract_and_add_to_veille(input_conv_file_path = 'ssphub_veille/export.json', min_time="2025-10-15", time_format_date=True):
+def extract_and_add_to_veille(input_conv_file_path = 'ssphub_veille/export.json', min_time="2025-10-15", time_format_date=True, target_table='Test'):
     """
     wrapper to extract from a json Tcahp file and add records to Veille table.
 
@@ -229,10 +229,10 @@ def extract_and_add_to_veille(input_conv_file_path = 'ssphub_veille/export.json'
             )
     )
 
-    add_to_veille(my_conv_df)
+    add_to_veille(my_conv_df, target_table)
 
 
-def extract_max_date():
+def extract_max_date(target_table='Veille'):
     """
     Extract max_date from Veille grist table 
 
@@ -244,14 +244,10 @@ def extract_max_date():
 
     Example:
         >>> extract_max_date()
-        ┌──────────┐
-        │ Date     │
-        │ ---      │
-        │ f64      │
-        ╞══════════╡
-        │ 1.7603e9 │
-        └──────────┘
+        array([[1.7602974e+09]])
     """
-    df = pl.DataFrame(get_grist_api().fetch_table('Veille'))
-    return df.filter(pl.col('Add_records') == True).select(pl.max('Date'))
+    df = pl.DataFrame(get_grist_api().fetch_table(target_table))
+    max = df.filter(pl.col('Add_records') == True).select(pl.max('Date')).to_numpy()[0,0]
+
+    return int(max)
 
