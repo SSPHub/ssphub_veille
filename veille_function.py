@@ -100,7 +100,6 @@ def clean_conv(file_path):
                                                      link_text  ... origin_server_ts
         6    Linux a sa réponse à Microsoft Copilot, et ell...  ...       1754574677
     """
-    file_path='ssphub_veille/export.json'
     with open(file_path, mode = 'r') as read_file:
         conv_tchap = json.load(read_file)
 
@@ -175,14 +174,14 @@ def convert_unix_time_df(df):
     Convert unix time to date time
 
     Args:
-        a dataframe with a column named "origin_server_ts"
+        a polars dataframe with a column named "origin_server_ts"
 
     Returns:
-        the df with origin_server_ts column parsed to date
+        the polars df with origin_server_ts column parsed to date
 
     Example:
     """
-    df['origin_server_ts'] = df['origin_server_ts'].apply(convert_unix_time)
+    df.with_columns(pl.col('origin_server_ts').map_elements(lambda x: convert_unix_time(x)))
 
     return df
 
@@ -217,7 +216,7 @@ def add_to_veille(my_conv_df):
     get_grist_api().add_records('Veille', my_conv_dict)
 
 
-def extract_and_add_to_veille(input_conv_file_path, min_time=0, time_format_date=True):
+def extract_and_add_to_veille(input_conv_file_path = 'ssphub_veille/export.json', min_time="2025-10-15", time_format_date=True):
     """
     wrapper to extract from a json Tcahp file and add records to Veille table.
 
@@ -239,7 +238,7 @@ def extract_and_add_to_veille(input_conv_file_path, min_time=0, time_format_date
         min_time = datetime.strptime(min_time, "%Y-%m-%d").timestamp()
 
     # Filter date
-    my_conv_df = my_conv_df[my_conv_df['origin_server_ts'] >= min_time]
+    my_conv_df = my_conv_df.filter(pl.col('origin_server_ts') >= min_time)
 
     # Convert time
     my_conv_df = convert_unix_time_df(my_conv_df)
