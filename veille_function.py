@@ -169,23 +169,6 @@ def get_grist_api():
     return GristDocAPI(DOC_ID, server=SERVER)
 
 
-def convert_unix_time_df(df):
-    """
-    Convert unix time to date time
-
-    Args:
-        a polars dataframe with a column named "origin_server_ts"
-
-    Returns:
-        the polars df with origin_server_ts column parsed to date
-
-    Example:
-    """
-    df.with_columns(pl.col('origin_server_ts').map_elements(lambda x: convert_unix_time(x)))
-
-    return df
-
-
 def add_to_veille(my_conv_df):
     """
     add a dataframe to Veille grist table
@@ -236,15 +219,15 @@ def extract_and_add_to_veille(input_conv_file_path = 'ssphub_veille/export.json'
     # If date is a date formet (2025-01-01), we convert it to timestamp
     if time_format_date:
         min_time = datetime.strptime(min_time, "%Y-%m-%d").timestamp()
-
-    # Filter date
-    my_conv_df = my_conv_df.filter(pl.col('origin_server_ts') >= min_time)
-
-    # Convert time
-    my_conv_df = convert_unix_time_df(my_conv_df)
-
-    # Setting add records to True
-    my_conv_df['Add_records'] = True
+  
+    my_conv_df = (
+        my_conv_df\
+            .filter(pl.col('origin_server_ts') >= min_time)  # Filter date
+            .with_columns(
+                pl.col('origin_server_ts').map_elements(lambda x: convert_unix_time(x)),   # Convert from Unix time to human readable time
+                Add_records=True 
+            )
+    )
 
     add_to_veille(my_conv_df)
 
