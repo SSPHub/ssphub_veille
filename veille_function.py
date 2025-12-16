@@ -143,7 +143,7 @@ def clean_conv(file_path):
     func_conv_df = func_conv_df.select(cols_to_keep)
 
     # Removing identical hyperlinks
-    func_conv_df = func_conv_df.unique(hyperlink, keep='first')
+    func_conv_df = func_conv_df.unique('hyperlink', keep='first')
     
     # Removing body of the message if just an hyperlink (body='[title](hyperlink)')
     func_conv_df = func_conv_df.with_columns(body=pl.when(pl.col.body=="["+pl.col.link_text+"]("+pl.col.hyperlink+")").then(pl.lit('')).otherwise(pl.col.body))
