@@ -142,6 +142,12 @@ def clean_conv(file_path):
 
     func_conv_df = func_conv_df.select(cols_to_keep)
 
+    # Removing identical hyperlinks
+    func_conv_df = func_conv_df.unique(hyperlink, keep='first')
+    
+    # Removing body of the message if just an hyperlink (body='[title](hyperlink)')
+    func_conv_df = func_conv_df.with_columns(body=pl.when(pl.col.body=="["+pl.col.link_text+"]("+pl.col.hyperlink+")").then(pl.lit('')).otherwise(pl.col.body))
+
     return func_conv_df
 
 
@@ -196,7 +202,9 @@ def add_to_veille(my_conv_df, target_table='Test'):
 
     # Export as dict to export to Grist
     my_conv_dict = my_conv_df.to_dicts()
-    get_grist_api().add_records(target_table, my_conv_dict)
+    res = get_grist_api().add_records(target_table, my_conv_dict)
+
+    return f'{len(res)} records have been added to the {target_table} table, from row {res[0]} to {res[-1]}' 
 
 
 def extract_and_add_to_veille(input_conv_file_path = 'ssphub_veille/export.json', min_time="2025-10-15", time_format_date=True, target_table='Test'):
@@ -229,7 +237,7 @@ def extract_and_add_to_veille(input_conv_file_path = 'ssphub_veille/export.json'
             )
     )
 
-    add_to_veille(my_conv_df, target_table)
+    return add_to_veille(my_conv_df, target_table)
 
 
 def extract_max_date(target_table='Veille'):
