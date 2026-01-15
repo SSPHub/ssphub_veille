@@ -203,6 +203,7 @@ def add_to_veille(my_conv_df, target_table='Test'):
         the records that have been added to table
 
     Example:
+        >>> add_to_veille(............, target_table='Test')
     """
     # Rename
     # Dictionnary for renaming variables / Right part must correspond to template keywords
@@ -214,14 +215,19 @@ def add_to_veille(my_conv_df, target_table='Test'):
             'body': 'Resume',
             'origin_server_ts': 'Date'
     }
+
+    old_conv_df = download_table(table_id=target_table).select("Lien_article").unique()
+
     my_conv_df = (my_conv_df
         .rename(variable_mapping)
         .sort('Date')
     )
+
+    new_msg_df = my_conv_df.join(old_conv_df, on="Lien_article", how="anti")
     
     # Export as dict to export to Grist
-    my_conv_dict = my_conv_df.to_dicts()
-    res = get_grist_api().add_records(target_table, my_conv_dict)
+    new_msg_dict = new_msg_df.to_dicts()
+    res = get_grist_api().add_records(target_table, new_msg_dict)
 
     return f'{len(res)} records have been added to the {target_table} table, from row {res[0]} to {res[-1]}' 
 
