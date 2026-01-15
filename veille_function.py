@@ -175,6 +175,22 @@ def get_grist_api():
     return GristDocAPI(DOC_ID, server=SERVER)
 
 
+def download_table(table_id='Test'):
+    """
+    Fetch data from a Grist table
+
+    Args:
+        The grist table id
+        
+
+    Returns:
+        the table from Grist as a Polars DataFrame
+
+    Example:
+    """
+    return pl.DataFrame(get_grist_api().fetch_table(table_id))
+
+
 def add_to_veille(my_conv_df, target_table='Test'):
     """
     add a dataframe to Veille grist table
