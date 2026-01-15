@@ -198,8 +198,11 @@ def add_to_veille(my_conv_df, target_table='Test'):
             'body': 'Resume',
             'origin_server_ts': 'Date'
     }
-    my_conv_df = my_conv_df.rename(variable_mapping)
-
+    my_conv_df = (my_conv_df
+        .rename(variable_mapping)
+        .sort('Date')
+    )
+    
     # Export as dict to export to Grist
     my_conv_dict = my_conv_df.to_dicts()
     res = get_grist_api().add_records(target_table, my_conv_dict)
