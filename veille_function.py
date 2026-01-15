@@ -196,7 +196,7 @@ def add_to_veille(my_conv_df, target_table='Test'):
     add a dataframe to Veille grist table
 
     Args:
-        a polars dataframe with records to updated to Veille grist table.
+        a polars dataframe with records to update to Veille grist table.
         Column names will be renamed to match target table column names.
 
     Returns:
@@ -216,30 +216,32 @@ def add_to_veille(my_conv_df, target_table='Test'):
             'origin_server_ts': 'Date'
     }
 
-    old_conv_df = download_table(table_id=target_table).select("Lien_article").unique()
 
-    my_conv_df = (my_conv_df
+    new_msg_df = (my_conv_df
         .rename(variable_mapping)
         .sort('Date')
     )
-
-    new_msg_df = my_conv_df.join(old_conv_df, on="Lien_article", how="anti")
     
     # Export as dict to export to Grist
     new_msg_dict = new_msg_df.to_dicts()
     res = get_grist_api().add_records(target_table, new_msg_dict)
 
-    return f'{len(res)} records have been added to the {target_table} table, from row {res[0]} to {res[-1]}' 
+    if len(res) == 0 :
+        res_msg = f'No record has been added to the {target_table} table' 
+    else:
+        res_msg = f'{len(res)} records have been added to the {target_table} table, from row {res[0]} to {res[-1]}' 
+
+    return res_msg
 
 
-def extract_and_add_to_veille(input_conv_file_path = 'ssphub_veille/export.json', min_time="2025-10-15", time_format_date=True, target_table='Test'):
+def extract_and_add_to_veille(input_conv_file_path = 'ssphub_veille/export.json', target_table='Test'):
     """
     wrapper to extract from a json Tcahp file and add records to Veille table.
+    Url that are already present in Target table will be discarded when updating the Grist table
 
     Args:
-        input_conv_file_path (string) : ath to json file that has been extracted from Tchap
-        min_time (int or date) : threshold date. Rows with date before that date will be skipped
-        time_format_date (bool): if min_time is a string ('2025-01-01') or unix code
+        input_conv_file_path (string) : path to json file that has been extracted from Tchap
+        target_table : Grist table id to update the rows to. 
 
     Returns:
         the records that have been added to table
@@ -248,14 +250,13 @@ def extract_and_add_to_veille(input_conv_file_path = 'ssphub_veille/export.json'
     """
     # Clean the conversation
     my_conv_df = clean_conv(input_conv_file_path)
-
-    # If date is a date formet (2025-01-01), we convert it to timestamp
-    if time_format_date:
-        min_time = datetime.strptime(min_time, "%Y-%m-%d").timestamp()
   
+    # Download data to filter new urls
+    old_conv_df = download_table(table_id=target_table).select("Lien_article").unique()
+
     my_conv_df = (
         my_conv_df\
-            .filter(pl.col('origin_server_ts') >= min_time)  # Filter date
+            .join(old_conv_df, left_on="hyperlink", right_on="Lien_article", how="anti")  # To keep only url that are not already present in the Grist table
             .with_columns(
                 pl.col('origin_server_ts').map_elements(lambda x: convert_unix_time(x)),   # Convert from Unix time to human readable time
                 Add_records=True 
@@ -265,22 +266,22 @@ def extract_and_add_to_veille(input_conv_file_path = 'ssphub_veille/export.json'
     return add_to_veille(my_conv_df, target_table)
 
 
-def extract_max_date(target_table='Veille'):
-    """
-    Extract max_date from Veille grist table 
+# def extract_max_date(target_table='Veille'):
+#     """
+#     Extract max_date from Veille grist table 
 
-    Args:
-        None
+#     Args:
+#         None
 
-    Returns:
-        max date of the column as unix date
+#     Returns:
+#         max date of the column as unix date
 
-    Example:
-        >>> extract_max_date()
-        array([[1.7602974e+09]])
-    """
-    df = pl.DataFrame(get_grist_api().fetch_table(target_table))
-    max = df.filter(pl.col('Add_records') == True).select(pl.max('Date')).to_numpy()[0,0]
+#     Example:
+#         >>> extract_max_date()
+#         array([[1.7602974e+09]])
+#     """
+#     df = pl.DataFrame(get_grist_api().fetch_table(target_table))
+#     max = df.filter(pl.col('Add_records') == True).select(pl.max('Date')).to_numpy()[0,0]
 
-    return int(max)
+#     return int(max)
 
