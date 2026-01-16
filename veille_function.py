@@ -258,8 +258,7 @@ def extract_and_add_to_veille(input_conv_file_path = 'ssphub_veille/export.json'
         my_conv_df\
             .join(old_conv_df, left_on="hyperlink", right_on="Lien_article", how="anti")  # To keep only url that are not already present in the Grist table
             .with_columns(
-                pl.col('origin_server_ts').map_elements(lambda x: convert_unix_time(x)),   # Convert from Unix time to human readable time
-                Add_records=True 
+                pl.col('origin_server_ts').map_elements(lambda x: convert_unix_time(x))   # Convert from Unix time to human readable time
             )
     )
 
@@ -281,7 +280,5 @@ def extract_and_add_to_veille(input_conv_file_path = 'ssphub_veille/export.json'
 #         array([[1.7602974e+09]])
 #     """
 #     df = pl.DataFrame(get_grist_api().fetch_table(target_table))
-#     max = df.filter(pl.col('Add_records') == True).select(pl.max('Date')).to_numpy()[0,0]
-
 #     return int(max)
 
