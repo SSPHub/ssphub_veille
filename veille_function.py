@@ -247,6 +247,8 @@ def extract_and_add_to_veille(input_conv_file_path = 'ssphub_veille/export.json'
         the records that have been added to table
 
     Example:
+    >>> extract_and_add_to_veille()
+    '170 records have been added to the Test table, from row 319 to 488'
     """
     # Clean the conversation
     my_conv_df = clean_conv(input_conv_file_path)
