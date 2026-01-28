@@ -1,4 +1,4 @@
-import veille_function as veille
+import ssphub_veille.veille_function as veille
 
 
 def test_():
