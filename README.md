@@ -4,6 +4,7 @@
 ## Set up :
 
 Initialize a vault file with following features :
+
     - **GRIST_VEILLE_DOC_ID** : id of grist document *VEILLE* → go to Grist, Veille tab, settings and API part
     - **GRIST_API_KEY** : API key to access to Grist → go to Grist, Account settings, generate API key
 
