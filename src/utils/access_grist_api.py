@@ -59,32 +59,6 @@ def get_grist_api():
     return GristDocAPI(DOC_ID, server=SERVER)
 
 
-def add_records(table_id, data_list):
-    if "GRIST_API_KEY" not in os.environ:
-        raise ValueError("The GRIST_API_KEY environment variable does not exist.")
-
-    SERVER = "https://grist.numerique.gouv.fr"
-    DOC_ID = os.environ["GRIST_VEILLE_DOC_ID"]
-
-    headers = {
-        "accept": "application/json",
-        "Authorization": f"Bearer {os.environ['GRIST_API_KEY']}",
-        "Content-Type": "application/json",
-    }
-
-    data_json = {
-        "records": data_list,
-    }
-
-    r = requests.post(
-        f"{SERVER}/api/docs/{DOC_ID}/Tables/{table_id}/records",
-        headers=headers,
-        json=data_json,
-    )
-
-    return r
-
-
 def download_table(table_id="Test"):
     """
     Fetch data from a Grist table
