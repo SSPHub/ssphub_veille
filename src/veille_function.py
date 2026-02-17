@@ -2,7 +2,7 @@ import polars as pl
 
 from src.data.clean_conv import clean_conv
 from src.data.formatting_time import convert_unix_time
-from src.utils.access_grist_api import GristApi, get_grist_api
+from src.utils.access_grist_api import GristApi
 from src.utils.logging import setup_logging
 
 # Regular expression to identify hyperlinks in Markdown format
@@ -39,17 +39,27 @@ def add_to_veille(my_conv_df, target_table="Test", logger=setup_logging()):
     # Export as dict to export to Grist
     logger.info("Début de l'export de la table vers Grist")
 
-    new_msg_dict = new_msg_df.to_dicts()
-    res = get_grist_api().add_records(target_table, new_msg_dict)
-
-    logger.info(
-        f"Nombre d'enregistrements ajoutés dans la table {target_table} : {len(res)}"
+    new_msg_dict = (
+        new_msg_df.fill_null(" ")  # To avoid issues with None values when set to dict
+        .with_columns(pl.struct(new_msg_df.columns).alias("fields"))
+        .select("fields")
+        .to_dicts()
     )
 
-    if len(res) == 0:
+    new_msg_json = {
+        "records": new_msg_dict,
+    }
+
+    res = GristApi().add_records(target_table, json=new_msg_json)
+
+    logger.info(
+        f"Nombre d'enregistrements ajoutés dans la table {target_table} : {len(res.content)}"
+    )
+
+    if len(res.content) == 0:
         res_msg = f"No record has been added to the {target_table} table"
     else:
-        res_msg = f"{len(res)} records have been added to the {target_table} table, from row {res[0]} to {res[-1]}"
+        res_msg = f"{len(res.content)} records have been added to the {target_table} table, from row {res.content[0]} to {res[-1]}"
 
     logger.info("Fin de l'export de la table vers Grist")
     return res_msg
