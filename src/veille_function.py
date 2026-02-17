@@ -58,7 +58,7 @@ def add_to_veille(my_conv_df, target_table="Test", logger=setup_logging()):
     if len(res.content) == 0:
         res_msg = f"No record has been added to the {target_table} table"
     else:
-        res_msg = f"{len(res.content)} records have been added to the {target_table} table, from row {res.content[0]} to {res[-1]}"
+        res_msg = f"{len(res.content)} records have been added to the {target_table} table, from row {res.content[0]} to {res.content[-1]}"
 
     logger.info("Fin de l'export de la table vers Grist")
     return res_msg
