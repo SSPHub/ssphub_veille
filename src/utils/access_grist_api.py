@@ -59,22 +59,6 @@ def get_grist_api():
     return GristDocAPI(DOC_ID, server=SERVER)
 
 
-def download_table(table_id="Test"):
-    """
-    Fetch data from a Grist table
-
-    Args:
-        The grist table id
-
-
-    Returns:
-        the table from Grist as a Polars DataFrame
-
-    Example:
-    """
-    return pl.DataFrame(get_grist_api().fetch_table(table_id), infer_schema_length=None)
-
-
 class GristApi:
     def __init__(self, doc_id=os.environ["GRIST_VEILLE_DOC_ID"]):
         if "GRIST_API_KEY" not in os.environ:
