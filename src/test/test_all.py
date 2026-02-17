@@ -3,11 +3,11 @@ from src.utils.access_grist_api import GristApi
 
 
 def test_():
-    veille.extract_and_add_to_veille("export.json", target_table="Test")
+    return veille.extract_and_add_to_veille("export.json", target_table="Test")
 
 
 def test_fetch():
-    GristApi().fetch_table("Veille")
+    return GristApi().fetch_table_pl("Veille")
 
 
 def test_add_records():
