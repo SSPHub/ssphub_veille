@@ -98,6 +98,30 @@ class GristApi:
         )
         return response
 
+    def fetch_table_pl(self, table_id, **kwarg):
+        """
+        Fetch data from a Grist table
+
+        Args:
+            The grist table id
+
+
+        Returns:
+            the table from Grist as a Polars DataFrame
+
+        Example:
+        >>> GristApi().fetch_table_pl("Test")
+        """
+        return (
+            pl.DataFrame(
+                self.fetch_table(table_id=table_id, **kwarg).json(),
+                infer_schema_length=None,
+                strict=False,
+            )
+            .unnest(columns="records")
+            .unnest(columns="fields")
+        )
+
     def add_records(self, table_id, **kwarg):
         response = requests.post(
             f"{self.table_url}/{table_id}/records", headers=self.headers, **kwarg
