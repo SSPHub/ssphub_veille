@@ -40,8 +40,7 @@ def add_to_veille(my_conv_df, target_table="Test", logger=setup_logging()):
     logger.info("Début de l'export de la table vers Grist")
 
     new_msg_dict = (
-        new_msg_df.fill_null(" ")  # To avoid issues with None values when set to dict
-        .with_columns(pl.struct(new_msg_df.columns).alias("fields"))
+        new_msg_df.with_columns(pl.struct(new_msg_df.columns).alias("fields"))
         .select("fields")
         .to_dicts()
     )
