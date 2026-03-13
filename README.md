@@ -26,10 +26,12 @@ Initialize a vault file with following features :
 ```{bash}
 cd ssphub_veille
 uv sync
-source .venv/bin/activate
-uv run script.py
+uv run main.py # default file is export.json and target table is Test
+uv run main.py -f "my_file.json" -t "Veille"
 ```
 
-- uv sync
-- go to script, run main.py
 - Grist table has been updated
+
+# Bugs
+
+If everything works correctly but no update, the Grist API may not work.
