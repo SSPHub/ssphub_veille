@@ -87,14 +87,18 @@ def extract_and_add_to_veille(
     logger.info("Début de la récupération de la veille")
     # Clean the conversation
     my_conv_df = clean_conv(input_conv_file_path)
-    logger.info("Fichier d'export des commentaires Tchap nettoyé")
+    logger.info(
+        f"Conversation transformée en table Grist, nombre de liens : {len(my_conv_df)}"
+    )
 
     # Download data to filter new urls
-    logger.info("Début du téléchargement de la table Grist")
+    logger.info(f"Début du téléchargement de la table Grist cible {target_table}")
     old_conv_df = (
         GristApi().fetch_table_pl(table_id=target_table).select("Lien_article").unique()
     )
-    logger.info(f"Table Grist téléchargée, nombre de lignes : {len(old_conv_df)}")
+    logger.info(
+        f"Table Grist cible {target_table} téléchargée, nombre de lignes : {len(old_conv_df)}"
+    )
 
     # Join new articles in former Grist table
     logger.info("Début de la création de la table Grist finale")
@@ -105,6 +109,6 @@ def extract_and_add_to_veille(
             lambda x: convert_unix_time(x)
         )  # Convert from Unix time to human readable time
     )
-    logger.info(f"Table Grist créée, nombre de lignes : {len(my_conv_df)}")
+    logger.info(f"Table Grist cible, nombre de lignes après fusion: {len(my_conv_df)}")
 
     return add_to_veille(my_conv_df, target_table)
