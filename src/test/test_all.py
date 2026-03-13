@@ -10,11 +10,11 @@ def test_fetch():
     return GristApi().fetch_table_pl("Veille")
 
 
-def test_add_records():
+def test_add_records(**kwargs):
     data_list = [
         {
             "fields": {
-                "Titre_article": "2 Les Rencontres du Numérique Ouvert le 13/11",
+                "Titre_article": "TEST FROM ONYXIA - 2 Les Rencontres du Numérique Ouvert le 13/11",
                 "Lien_article": "https://docs.numerique.gouv.fr/dorerer/",
                 "Qui_a_propose": "Coucou",
                 "Quel_chanel": "https://tchap.gouv.fr/#/room/!DTuNyduZcTlsapzfyV:agent.finances.tchap.gouv.fr/$175974485023378hbhrc:agent.finances.tchap.gouv.fr",
@@ -24,7 +24,7 @@ def test_add_records():
         },
         {
             "fields": {
-                "Titre_article": "vcvxcwcvwxxxw",
+                "Titre_article": "TEST FROM ONYXIA - vcvxcwcvwxxxw",
                 "Lien_article": "https://www.linkedin.com/posts/",
                 "Qui_a_propose": "rezrez",
                 "Quel_chanel": "https://tchap.gouv.fr/#/room/!DTuNyduZcTlsapzfyV:agent.finances.tchap.gouv.fr/$175978782747889EWpei:agent.finances.tchap.gouv.fr",
@@ -34,7 +34,7 @@ def test_add_records():
         },
         {
             "fields": {
-                "Titre_article": "Webinaire eurostat: utilisation de l'ia pour la stat publique",
+                "Titre_article": "TEST FROM ONYXIA - Webinaire eurostat: utilisation de l'ia pour la stat publique",
                 "Lien_article": "https://link.europa.eu",
                 "Qui_a_propose": "vxcvxcv",
                 "Quel_chanel": "https://tchap.gouv.fr/#/room/!DTuNyduZcTlsapzfyV:agent.finances.tchap.gouv.fr/$1759935114134590jLsxw:agent.finances.tchap.gouv.fr",
@@ -46,4 +46,20 @@ def test_add_records():
 
     data_json = {"records": data_list}
 
-    return GristApi().add_records("Test", json=data_json)
+    return GristApi().add_records("Test", json=data_json, **kwargs)
+
+
+def test_redirect_post():
+    r = test_add_records(allow_redirects=True)
+    print("Test with allow_redirects=True")
+    print(r)
+    print(r.url)
+    print(r.request.method)
+    r = test_add_records(allow_redirects=False)
+    print("Test with allow_redirects=False")
+    print(r)
+    print(r.url)
+    print(r.request.method)
+
+
+test_redirect_post()
