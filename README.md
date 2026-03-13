@@ -13,25 +13,28 @@ Initialize a vault file with following features :
 
 - go to Tchap
 - extract the discussion using the "Export conversation" button within the group, with the following options :
-  - formater: _json_ file
+  - format: _json_ file
   - messages :
     - specify a # of msg
     - 1000 enough (10000 messages is 3 years of chat and represents 3Mo)
   - max size : set to 3Mo
 - upload it to _working directory_ as **ssphub_veille/export.json**
-  run
 
 ### Update to Grist table
+
+- run the following commands on Terminal :
 
 ```{bash}
 cd ssphub_veille
 uv sync
-uv run main.py # default file is export.json and target table is Test
-uv run main.py -f "my_file.json" -t "Veille"
+# uv run main.py # default file is export.json and target table is Test
+uv run main.py -t "Veille"
+# uv run main.py -f "export.json" -t "Veille"
 ```
 
 - Grist table has been updated
 
 # Bugs
 
-If everything works correctly but no update, the Grist API may not work.
+- If everything works correctly but no update, the Grist API may not work and redirect to GET request.
+  See test_redirect_post() in test_all.py to check for that.

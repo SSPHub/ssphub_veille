@@ -50,15 +50,14 @@ def add_to_veille(my_conv_df, target_table="Test", logger=setup_logging()):
     }
 
     res = GristApi().add_records(target_table, json=new_msg_json)
+    res = res.json().get("records", "")
 
-    logger.info(
-        f"Nombre d'enregistrements ajoutés dans la table {target_table} : {len(res.content)}"
-    )
-
-    if len(res.content) == 0:
+    if len(res) == 0:
         res_msg = f"No record has been added to the {target_table} table"
     else:
-        res_msg = f"{len(res.content)} records have been added to the {target_table} table, from row {res.content[0]} to {res.content[-1]}"
+        res_msg = f"{len(res)} records have been added to the {target_table} table, from id {res[0]['id']} to {res[-1]['id']}"
+
+    logger.info(f"{res_msg}")
 
     logger.info("Fin de l'export de la table vers Grist")
     return res_msg
@@ -109,6 +108,6 @@ def extract_and_add_to_veille(
             lambda x: convert_unix_time(x)
         )  # Convert from Unix time to human readable time
     )
-    logger.info(f"Table Grist cible, nombre de lignes après fusion: {len(my_conv_df)}")
+    logger.info(f"Nombre de lignes après filtre liens déjà présents: {len(my_conv_df)}")
 
     return add_to_veille(my_conv_df, target_table)
