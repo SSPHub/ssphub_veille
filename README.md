@@ -37,7 +37,8 @@ uv run main.py -t "Veille"
 # Bugs
 
 - If everything works correctly but no update, the Grist API may not work and redirect to GET request.
-  See test_redirect_post() in test_all.py to check for that.
+  Run `uv run test.py` to test that one.
+  You can also run it directly with `bash src/test/test_grist.sh`
 
 # Documentation
 

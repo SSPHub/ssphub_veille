@@ -1,9 +1,9 @@
-import src.veille_function as veille
 from src.utils.access_grist_api import GristApi
+from src.veille_function import extract_and_add_to_veille
 
 
 def test_():
-    return veille.extract_and_add_to_veille("export.json", target_table="Test")
+    return extract_and_add_to_veille("export.json", target_table="Test")
 
 
 def test_fetch():
@@ -60,6 +60,3 @@ def test_redirect_post():
     print(r)
     print(r.url)
     print(r.request.method)
-
-
-test_redirect_post()
