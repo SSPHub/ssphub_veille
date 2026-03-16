@@ -38,3 +38,9 @@ uv run main.py -t "Veille"
 
 - If everything works correctly but no update, the Grist API may not work and redirect to GET request.
   See test_redirect_post() in test_all.py to check for that.
+
+# Documentation
+
+![overview of the structure of the functions (except testing functions)](docs/call_graph_all_but_test.png)
+
+The graph can be generated with `graphs.sh`
