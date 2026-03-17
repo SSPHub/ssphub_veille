@@ -34,6 +34,7 @@ The final result should be something like :
 
 ### Update to Grist table
 
+- Launch a VSCode-Pyhton service in Onyxia with your secret and clone the git repo.
 - run the following commands on Terminal. `main.py` will accept two arguments :
   - a path to the json file to clean and import to Grist. The argument is named `-f` or `--file`
   - the name of the target Grist table to import the data to. It can be either "Test" or "Veille". The argument is named `-t` or `--table`
