@@ -51,13 +51,15 @@ The final result should be something like :
 ### Export Tchap conversation
 
 - go to Tchap
-- extract the discussion using the "Export conversation" button within the group, with the following options :
-  - format: _json_ file
-  - messages :
-    - specify a # of msg
-    - 500 enough (10000 messages is 3 years of chat and represents 3Mo)
-  - max size : set to 3Mo
-- upload it to _working directory_ as **ssphub_veille/export.json**
+- extract the discussion using :
+  - click on the discussion name (top of the window)
+  - on the right handside panel, go to "Export conversation" , with the following options :
+    - format: _json_ file
+    - messages :
+      - specify a # of msg
+      - 500 enough (10000 messages is 3 years of chat and represents 3Mo)
+    - max size : set to 3Mo
+- upload the file into **ssphub_veille directory** as **export.json**
 
 ### Update to Grist table
 
