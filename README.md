@@ -82,6 +82,21 @@ uv run main.py -t "Veille"
   Run `uv run test.py` to test that one.
   You can also run it directly with `bash src/test/test_grist.sh`
 
+  If the result of the command is :
+
+  Test with allow_redirects=True
+  <Response [200]>
+  https://grist.numerique.gouv.fr/api/docs/qntJ8WFEMytztkVZCwyCSN/tables/Test/records
+  GET
+  Test with allow_redirects=False
+  <Response [302]>
+  https://grist.numerique.gouv.fr/api/docs/qntJ8WFEMytztkVZCwyCSN/tables/Test/records
+  POST
+
+  It means that there is a problem.
+
+  If there is no problem, the result should be <Response [200]> and <Response [200]>.
+
 # Documentation
 
 ![overview of the structure of the functions (except testing functions)](docs/call_graph_all_but_test.png)
