@@ -1,23 +1,50 @@
 # ssphub_veille
 
+# What do I need to be able to use this repo ?
+
+For convenience, the readme is done using Onyxia and [SSPCloud's data platform](https://datalab.sspcloud.fr/).
+
+- You should therefore already have an account there.
+- You should also have a Grist account on [https://grist.numerique.gouv.fr/](https://grist.numerique.gouv.fr/).
+- You need to have edit rights on Grist's Veille document.
+
+## Have access to Grist SSPHub
+
+Ask an admin of the SSPHub organization in Grist to give you edit rights on the Veille document.
+If you have the rights, you should have the following icon in Grist :
+
+![Access to SSPHub's Grist ](grist_ssphub.png)
+
+You need to store the id of the Veille document.
+It's accessible through the url of the Veille document : https://grist.numerique.gouv.fr/o/ssphub/doc/ID_OF_THE_DOCUMENT_TO_NOTE
+
+## Get Grist API key
+
+In Grist, on the top right, go to account's settings.
+
+![Access your Grist account's settings](grist_account.png)
+
+You can then create and have access to your Grist API Key. Note it down for later.
+![Here is your Grist API key](grist_api.png)
+
 ## Set up :
 
 Initialize a vault file with following features :
 
-- **GRIST_VEILLE_DOC_ID** : id of grist document _VEILLE_ → go to Grist, Veille tab, settings and API part
-- **GRIST_API_KEY** : API key to access to Grist → go to Grist, Account settings, generate API key
+- **GRIST_VEILLE_DOC_ID** : id of Grist SSPHub's _VEILLE_ document (cf. steps above)
+- **GRIST_API_KEY** : API key to access Grist (cf. steps above)
 
 ### Add a secret in Onyxia
 
 Using Onyxia, you can add a secret by going to "Mes secrets/Nouveau secret/".
-![](onyxia_secrets.png)
+![Select my secrets](onyxia_secrets.png)
 
-![](onyxia_newsecret.png)
+![Then "new secret"](onyxia_newsecret.png)
 
 Name it SSPHub for example.
 Then, you click on "add a new variable", enter the secret's name and its value.
 The final result should be something like :
-![](onyxia_addvar.png)
+![Final result with the two environment variables](onyxia_addvar.png)
 
 ## Instructions :
 
@@ -28,7 +55,7 @@ The final result should be something like :
   - format: _json_ file
   - messages :
     - specify a # of msg
-    - 1000 enough (10000 messages is 3 years of chat and represents 3Mo)
+    - 500 enough (10000 messages is 3 years of chat and represents 3Mo)
   - max size : set to 3Mo
 - upload it to _working directory_ as **ssphub_veille/export.json**
 
