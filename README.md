@@ -7,6 +7,18 @@ Initialize a vault file with following features :
 - **GRIST_VEILLE_DOC_ID** : id of grist document _VEILLE_ → go to Grist, Veille tab, settings and API part
 - **GRIST_API_KEY** : API key to access to Grist → go to Grist, Account settings, generate API key
 
+### Add a secret in Onyxia
+
+Using Onyxia, you can add a secret by going to "Mes secrets/Nouveau secret/".
+![](onyxia_secrets.png)
+
+![](onyxia_newsecret.png)
+
+Name it SSPHub for example.
+Then, you click on "add a new variable", enter the secret's name and its value.
+The final result should be something like :
+![](onyxia_addvar.png)
+
 ## Instructions :
 
 ### Export Tchap conversation
@@ -22,11 +34,13 @@ Initialize a vault file with following features :
 
 ### Update to Grist table
 
-- run the following commands on Terminal :
+- run the following commands on Terminal. `main.py` will accept two arguments :
+  - a path to the json file to clean and import to Grist. The argument is named `-f` or `--file`
+  - the name of the target Grist table to import the data to. It can be either "Test" or "Veille". The argument is named `-t` or `--table`
+  - by default, the main script will run using a file named "export.json" in the ssphub_veille directory and import it into the table named "Test".
 
 ```{bash}
 cd ssphub_veille
-uv sync
 # uv run main.py # default file is export.json and target table is Test
 uv run main.py -t "Veille"
 # uv run main.py -f "export.json" -t "Veille"
