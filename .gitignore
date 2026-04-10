@@ -3,6 +3,10 @@
 *.json
 *.parquet
 
+# Tchap
+session.txt
+store/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
