@@ -1,6 +1,6 @@
 import json
 import polars as pl
-from src.data.formatting_link import (
+from src.tchap_clean.formatting_link import (
     extract_link, 
     extract_link_text
 )
