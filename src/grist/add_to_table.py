@@ -1,5 +1,5 @@
 import polars as pl
-from src.utils.access_grist_api import GristApi
+from src.grist.access_grist_api import GristApi
 from src.utils.logging import setup_logging
 
 

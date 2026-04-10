@@ -2,7 +2,7 @@ import polars as pl
 
 from src.make_data.clean_conv import clean_conv
 from src.data.formatting_time import convert_unix_time
-from src.utils.access_grist_api import GristApi
+from src.grist.access_grist_api import GristApi
 from src.utils.logging import setup_logging
 from src.grist.add_to_table import add_to_veille
 

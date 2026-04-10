@@ -1,4 +1,4 @@
-from src.utils.access_grist_api import GristApi
+from src.grist.access_grist_api import GristApi
 from src.veille_function import extract_and_add_to_veille
 
 
