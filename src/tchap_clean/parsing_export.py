@@ -44,7 +44,7 @@ def parse_tchap_message(event_match):
     extracted_conv = [
         {
             "body": event_match.body,  # To return "" when key not found
-            "formatted_body": event_match.body.formatted_body,  # To return "" when key not found
+            "formatted_body": event_match.formatted_body,  # To return "" when key not found
             "event_id": event_match.event_id,
             "origin_server_ts": event_match.server_timestamp,
             "sender": event_match.sender,
