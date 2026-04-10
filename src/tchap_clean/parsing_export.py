@@ -38,4 +38,25 @@ def parse_json(file_path):
 
     return extracted_conv
 
-# %%
+
+def parse_tchap_message(event_match):
+
+    extracted_conv = [
+        {
+            "body": event_match.body,  # To return "" when key not found
+            "formatted_body": event_match.body.formatted_body,  # To return "" when key not found
+            "event_id": event_match.event_id,
+            "origin_server_ts": event_match.server_timestamp,
+            "sender": event_match.sender,
+            "room_id": event_match.room_id
+        }
+    ]
+
+    return extracted_conv
+
+
+def parse(file_or_event):
+    if type(file_or_event) is str:
+        return parse_json(file_or_event)
+    else:
+        return parse_tchap_message(file_or_event)

@@ -4,19 +4,19 @@ from src.tchap_clean.formatting_link import (
     extract_link_text
 )
 from src.tchap_clean.parsing_export import (
-    parse_json
+    parse
 )
 
 # Regular expression to identify hyperlinks in Markdown format
 pattern = r'\[([^\]]+)\]\(([^)]+)\)'
 
 
-def clean_conv(file_path):
+def clean_conv(file_or_event):
     """
     Converts a json file extracted from Tchap to a database.
 
     Args:
-        file_path (string): path to json file to convert.
+        file_or_event (string): path to json file to convert.
 
     Returns:
         A dataframe (pl.Df) with columns : ['link_text', 'hyperlink', 'sender', 'msg_link', 'body', 'origin_server_ts']
@@ -27,7 +27,7 @@ def clean_conv(file_path):
         6    Linux a sa réponse à Microsoft Copilot, et ell...  ...       1754574677
     """
 
-    extracted_conv = parse_json(file_path)
+    extracted_conv = parse(file_or_event)
 
     # Create a DataFrame
     func_conv_df = pl.DataFrame(extracted_conv)
