@@ -1,8 +1,10 @@
-import json
 import polars as pl
 from src.tchap_clean.formatting_link import (
     extract_link, 
     extract_link_text
+)
+from src.tchap_clean.parsing_export import (
+    parse_json
 )
 
 # Regular expression to identify hyperlinks in Markdown format
@@ -24,28 +26,15 @@ def clean_conv(file_path):
                                                      link_text  ... origin_server_ts
         6    Linux a sa réponse à Microsoft Copilot, et ell...  ...       1754574677
     """
-    with open(file_path, mode='r') as read_file:
-        conv_tchap = json.load(read_file)
 
-    extracted_conv = []
-    for record in conv_tchap["messages"]:
-        extracted_msg = {
-            "body": record["content"].get("body", ""),  # To return "" when key not found
-            # "formatted_body": record["content"].get("formatted_body", ""),  # To return "" when key not found
-            "event_id": record["event_id"],
-            "origin_server_ts": record["origin_server_ts"],
-            "sender": record["sender"],
-            "room_id": record["room_id"]
-        }
-
-        extracted_conv.append(extracted_msg)
+    extracted_conv = parse_json(file_path)
 
     # Create a DataFrame
     func_conv_df = pl.DataFrame(extracted_conv)
 
     # Streamlining data
     func_conv_df = (
-        func_conv_df\
+        func_conv_df
             .with_columns(
                 msg_link='https://tchap.gouv.fr/#/room/' + pl.col('room_id') + '/' + pl.col('event_id'),  # Creating link to tchap msg
                 # Who sent the message
