@@ -47,11 +47,12 @@ def add_to_veille(my_conv_df, target_table="Test", logger=setup_logging()):
     res = res.json().get("records", "")
 
     if len(res) == 0:
-        res_msg = f"No record has been added to the {target_table} table"
+        res = [""]
+        logger.info(f"No record has been added to the {target_table} table")
     else:
-        res_msg = f"{len(res)} records have been added to the {target_table} table, from id {res[0]['id']} to {res[-1]['id']}"
-
-    logger.info(f"{res_msg}")
+        res = [index['id'] for index in res]
+        logger.info(f"{len(res)} records have been added to the {target_table} table, from id {res[0]} to {res[-1]}"
+)
 
     logger.info("Fin de l'export de la table vers Grist")
-    return res_msg
+    return res
