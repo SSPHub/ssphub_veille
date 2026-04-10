@@ -7,7 +7,7 @@ def test_():
 
 
 def test_fetch():
-    return GristApi().fetch_table_pl("Veille")
+    return GristApi().fetch_table_pl("Test")
 
 
 def test_add_records(**kwargs):
