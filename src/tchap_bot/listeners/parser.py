@@ -1,10 +1,10 @@
-from src.tchap_bot.config import bot
+from ..config import bot
 import simplematrixbotlib as botlib
-from src.make_data.clean_conv import clean_conv
-from src.grist.add_to_table import add_to_veille
+from ...make_data.clean_conv import clean_conv
+from ...grist.add_to_table import add_to_veille
 import os 
 
-no_grist="no Grist"
+no_grist = "no Grist"
 
 @bot.listener.on_message_event
 async def msg_to_Grist(room, message):
@@ -15,7 +15,7 @@ async def msg_to_Grist(room, message):
         res_msg = add_to_veille(clean_conv(match.event))
 
         await bot.api.send_reaction(
-            room_id=os.environ["TCHAP_ROOM_ID"],
+            room_id=room.room_id,
             event=message,
             key="🔗"
         )
@@ -28,6 +28,6 @@ async def msg_to_Grist(room, message):
 
     if match.is_not_from_this_bot() and match.contains(no_grist):
         await bot.api.send_reaction(
-            room_id=os.environ["TCHAP_ROOM_ID"],
+            room_id=room.room_id,
             event=message,
             key="❌")

@@ -1,6 +1,6 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from src.tchap_bot.config import bot
+from ..config import bot
 import simplematrixbotlib as botlib
 
 @bot.listener.on_message_event
