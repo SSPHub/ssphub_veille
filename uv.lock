@@ -445,6 +445,12 @@ wheels = [
 ]
 
 [[package]]
+name = "importlib"
+version = "1.0.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/31/77/3781f65cafe55480b56914def99022a5d2965a4bb269655c89ef2f1de3cd/importlib-1.0.4.zip", hash = "sha256:b6ee7066fea66e35f8d0acee24d98006de1a0a8a94a8ce6efe73a9a23c8d9826", size = 7074, upload-time = "2016-08-31T19:40:00.728Z" }
+
+[[package]]
 name = "iniconfig"
 version = "2.3.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1114,6 +1120,7 @@ dependencies = [
     { name = "argparse" },
     { name = "code2flow" },
     { name = "datetime" },
+    { name = "importlib" },
     { name = "logging" },
     { name = "matrix-nio", extra = ["e2e"] },
     { name = "pandas" },
@@ -1128,6 +1135,7 @@ requires-dist = [
     { name = "argparse", specifier = ">=1.4.0" },
     { name = "code2flow", specifier = ">=2.5.1" },
     { name = "datetime", specifier = ">=5.5" },
+    { name = "importlib", specifier = ">=1.0.4" },
     { name = "logging", specifier = ">=0.4.9.6" },
     { name = "matrix-nio", extras = ["e2e"], specifier = ">=0.25.2" },
     { name = "pandas", specifier = ">=2.3.3" },
