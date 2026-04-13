@@ -25,8 +25,8 @@ class Settings:
     no_grist: str
 
 
-def load_all():
-    return load_creds(), load_config(), load_settings()
+def load_all(*args):
+    return load_creds(), load_config(), load_settings(*args)
 
 
 def load_creds() -> Creds:
@@ -46,10 +46,10 @@ def load_config() -> BotConfig:
     )
 
 
-def load_settings() -> Settings:
+def load_settings(prefix: str = "!", filter_mode: str = "allowlist") -> Settings:
     return Settings(
-        prefix=os.getenv("TCHAP_BOT_PREFIX", "!"),
-        filter_mode=FilterMode[os.getenv("TCHAP_ROOM_FILTER_MODE", "DISABLED")],
+        prefix=prefix,
+        filter_mode=FilterMode(filter_mode),
         room_ids=[
             value
             for key, value in os.environ.items()
