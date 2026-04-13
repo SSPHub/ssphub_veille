@@ -19,3 +19,4 @@ class RoomFilter:
             return room_id in self.room_ids
         if self.mode == FilterMode.BLOCKLIST:
             return room_id not in self.room_ids
+            

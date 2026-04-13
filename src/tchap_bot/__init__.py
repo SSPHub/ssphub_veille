@@ -12,6 +12,8 @@ def run():
         room_ids=settings.room_ids,
     )
 
+    print(f"Filter mode is {settings.filter_mode} with authorized list : {settings.room_ids}")
+
     bot = create_bot(creds, config)
 
     print("Loading listeners...")
