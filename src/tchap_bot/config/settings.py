@@ -22,6 +22,7 @@ class Settings:
     prefix: str
     filter_mode: FilterMode
     room_ids: list[str]
+    no_grist: str
 
 
 def load_all():
@@ -50,5 +51,6 @@ def load_settings() -> Settings:
     return Settings(
         prefix=os.getenv("BOT_PREFIX", "!"),
         filter_mode=FilterMode[os.getenv("ROOM_FILTER_MODE", "DISABLED")],
-        room_ids=[r.strip() for r in raw_ids.split(",") if r.strip()]
+        room_ids=[r.strip() for r in raw_ids.split(",") if r.strip()],
+        no_grist="no Grist"
     )

@@ -2,8 +2,11 @@ import simplematrixbotlib as botlib
 from ...make_data.clean_conv import clean_conv
 from ...grist.add_to_table import add_to_veille
 from ..core.room_filter import RoomFilter
+from ..config.settings import load_settings
 
-no_grist = "no Grist"
+
+no_grist = load_settings().no_grist
+
 
 def register(bot: botlib.Bot, room_filter: RoomFilter, prefix: str) -> None:
     @bot.listener.on_message_event
