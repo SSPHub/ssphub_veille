@@ -3,6 +3,7 @@ from zoneinfo import ZoneInfo
 import simplematrixbotlib as botlib
 from ..core.room_filter import RoomFilter
 
+
 def register(bot: botlib.Bot, room_filter: RoomFilter, prefix: str) -> None:
     @bot.listener.on_message_event
     async def echo(room, message):

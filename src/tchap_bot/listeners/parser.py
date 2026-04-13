@@ -13,11 +13,12 @@ def register(bot: botlib.Bot, room_filter: RoomFilter, prefix: str) -> None:
     async def msg_to_Grist(room, message):
         if not room_filter.allows(room.room_id):
             return
-        
+
         match = botlib.MessageMatch(room, message, bot)
+   
+        match_ok_grist = no_grist.lower() not in match.event.body.lower()
 
-        if match.is_not_from_this_bot() and (match.contains("href") or match.contains("http")) and not match.contains(no_grist):
-
+        if match.is_not_from_this_bot() and (match.contains("href") or match.contains("http")) and match_ok_grist:
             res_msg = add_to_veille(clean_conv(match.event))
 
             await bot.api.send_reaction(
@@ -32,7 +33,7 @@ def register(bot: botlib.Bot, room_filter: RoomFilter, prefix: str) -> None:
                 reply_to=match.event.event_id
             )
 
-        if match.is_not_from_this_bot() and match.contains(no_grist):
+        if match.is_not_from_this_bot() and not match_ok_grist:
             await bot.api.send_reaction(
                 room_id=room.room_id,
                 event=message,
