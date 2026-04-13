@@ -47,10 +47,13 @@ def load_config() -> BotConfig:
 
 
 def load_settings() -> Settings:
-    raw_ids = os.getenv("ROOM_IDS", "")
     return Settings(
-        prefix=os.getenv("BOT_PREFIX", "!"),
-        filter_mode=FilterMode[os.getenv("ROOM_FILTER_MODE", "DISABLED")],
-        room_ids=[r.strip() for r in raw_ids.split(",") if r.strip()],
+        prefix=os.getenv("TCHAP_BOT_PREFIX", "!"),
+        filter_mode=FilterMode[os.getenv("TCHAP_ROOM_FILTER_MODE", "DISABLED")],
+        room_ids=[
+            value
+            for key, value in os.environ.items()
+            if key.startswith("TCHAP_ROOM_ID")
+        ],
         no_grist="no Grist"
     )
