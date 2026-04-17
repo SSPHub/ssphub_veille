@@ -28,7 +28,6 @@ def add_to_veille(my_conv_df, target_table="Test", logger=setup_logging()):
     variable_mapping = {
         "link_text": "Titre_article",
         "hyperlink": "Lien_article",
-        "sender": "Qui_a_propose",
         "msg_link": "Quel_chanel",
         "body": "Resume",
         "origin_server_ts": "Date",
