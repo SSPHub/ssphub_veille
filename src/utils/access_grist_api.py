@@ -1,4 +1,5 @@
 import os
+import warnings
 
 import polars as pl
 import requests
@@ -6,8 +7,23 @@ import requests
 
 class GristApi:
     def __init__(self, doc_id=os.environ["GRIST_VEILLE_DOC_ID"]):
-        if "GRIST_API_KEY" not in os.environ:
-            raise ValueError("The GRIST_API_KEY environment variable does not exist.")
+        if "GRIST_SERVICE_ACCOUNT_VEILLE_KEY" in os.environ:
+            token = os.environ.get("GRIST_SERVICE_ACCOUNT_VEILLE_KEY", "")
+        else:
+            warnings.warn(
+                "The Service account API key for the document hasn't been found under GRIST_SERVICE_ACCOUNT_VEILLE_KEY.",
+                UserWarning,
+            )
+            if "GRIST_API_KEY" in os.environ:
+                token = os.environ.get("GRIST_API_KEY", "")
+                warnings.warn(
+                    "The GRIST_API_KEY environment variable is used instead.",
+                    UserWarning,
+                )
+            else:
+                raise ValueError(
+                    "The GRIST_API_KEY environment variable does not exist."
+                )
 
         self.base_url = "https://grist.numerique.gouv.fr/api"
 
@@ -17,7 +33,7 @@ class GristApi:
 
         self.headers = {
             "accept": "application/json",
-            "Authorization": f"Bearer {os.environ['GRIST_API_KEY']}",
+            "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
         }
 

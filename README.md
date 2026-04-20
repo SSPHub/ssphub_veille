@@ -27,12 +27,22 @@ In Grist, on the top right, go to account's settings.
 You can then create and have access to your Grist API Key. Note it down for later.
 ![Here is your Grist API key](grist_api.png)
 
+You can also use a service account on Grist that gives you access to an API key.
+Service account are linked to a single document and reduce the risk ok leaking the key.
+Indeed, your personnal key gives access to all of your Grist files when a service account key
+has access only to the documents you granted it access to.
+
 ## Set up :
 
 Initialize a vault file with following features :
 
 - **GRIST_VEILLE_DOC_ID** : id of Grist SSPHub's _VEILLE_ document (cf. steps above)
+- **GRIST_SERVICE_ACCOUNT_VEILLE_KEY** : key of the service account linked to the document
 - **GRIST_API_KEY** : API key to access Grist (cf. steps above)
+
+By default, it searches for a service account key stored in an environment variable called
+"GRIST_SERVICE_ACCOUNT_VEILLE_KEY".
+If not present, it seaches for the environment variable called "GRIST_API_KEY".
 
 ### Add a secret in Onyxia
 
