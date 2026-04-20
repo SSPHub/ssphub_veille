@@ -10,6 +10,7 @@ dependencies = [
     "datetime>=5.5",
     "logging>=0.4.9.6",
     "matrix-nio[e2e]>=0.25.2",
+    "openai>=2.32.0",
     "pandas>=2.3.3",
     "polars>=1.35.2",
     "pytest>=9.0.1",
