@@ -2,10 +2,7 @@ import json
 
 import polars as pl
 
-from src.data.formatting_link import extract_link, extract_link_text
-
-# Regular expression to identify hyperlinks in Markdown format
-pattern = r"\[([^\]]+)\]\(([^)]+)\)"
+from src.data.formatting_link import extract_link_title
 
 
 def clean_conv(file_path):
@@ -32,7 +29,9 @@ def clean_conv(file_path):
             "body": record["content"].get(
                 "body", ""
             ),  # To return "" when key not found
-            # "formatted_body": record["content"].get("formatted_body", ""),  # To return "" when key not found
+            "formatted_body": record["content"].get(
+                "formatted_body", ""
+            ),  # To return "" when key not found
             "event_id": record["event_id"],
             "origin_server_ts": record["origin_server_ts"],
             "room_id": record["room_id"],
@@ -50,12 +49,13 @@ def clean_conv(file_path):
             + pl.col("room_id")
             + "/"
             + pl.col("event_id"),  # Creating link to tchap msg
-            hyperlink=pl.col("body").map_elements(
-                lambda x: extract_link(x)
-            ),  # Extract hyperlink : [my_link](https://mylink) -> https://mylink
-            link_text=pl.col("body").map_elements(
-                lambda x: extract_link_text(x)
-            ),  # Extract hyperlink title or text : [my_link](https://mylink) -> my_link
+            hyperlink=pl.col("formatted_body").map_elements(
+                lambda x: extract_link_title(x)
+            ),  # Extract hyperlink : <a href="https://www.insee.fr">Le plus beau site du monde</a> -> [https://www.insee.fr, Le plus beau site du monde]
+        )
+        .with_columns(
+            hyperlink=pl.col("hyperlink").list.get(0),
+            link_text=pl.col("hyperlink").list.get(1),
         )
         .drop_nulls(subset="hyperlink")
         .with_columns(

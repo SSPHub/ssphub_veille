@@ -1,57 +1,63 @@
-import re  # to extract link
+import re
+
+from bs4 import BeautifulSoup
 
 
-# Regular expression to identify hyperlinks in Markdown format
-pattern = r'\[([^\]]+)\]\(([^)]+)\)'
+def extract_link_rawtxt(text):
+    # Regex pattern to match HTTP/HTTPS URLs
+    pattern = r"https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+[/\w .-]*(?:\?[^\s]*)?"
+    match = re.search(pattern, text)
+    return match.group(0) if match else None
 
 
-# Function to extract the hyperlink
-def extract_link(text):
+# Function to extract the hyperlink and its title from an html formatted body
+def extract_link_title_html(text):
     """
     Function to extract a link, formatted in Markodwn or plain text, from a string
 
     Args:
         text (string): text where to look for the link
-    
-    Returns:
+
+    Returns: a tuple with :
         None if nothing found
-        Url link (string) if found
-    
+        Url link (string), Title (if found otherwise empty)
+
     Example:
-        >>> extract_link('https://www.tjis_is_my_link.fr')
+        >>> extract_link('coucou https://www.tjis_is_my_link.fr')
         'https://www.tjis_is_my_link.fr'
         >>> extract_link('[a link](https://www.tjis_is_my_link.fr)')
         'https://www.tjis_is_my_link.fr'
     """
-    match = re.search(pattern, text)
-    if match:
-        return match.group(2)
+    # Parse the formatted body
+    soup = BeautifulSoup(text, "html.parser")
+
+    # Remove all <mx-reply> tags when you reply to a msg
+    for mx_reply in soup.find_all("mx-reply"):
+        mx_reply.decompose()
+
+    # Find all <a> tags with href attributes
+    links = soup.find_all("a", href=True)
+
+    # Filter HTTPS/HTTP links and get the first match
+    first_link = None
+    first_title = ""
+    for link in links:
+        href = link["href"]
+        if href.startswith(("http://", "https://")):
+            first_link = href
+            first_title = link.get_text(strip=True)  # Extract the title text
+            break
+
+    if first_link:
+        return first_link, first_title
     else:
-        # Check if the text itself is a URL
-        if re.match(r'^https?://\S+$', text):
-            return text
-        return None
+        return None, None
 
 
-# Function to extract the link text
-def extract_link_text(text):
-    """
-    Function to the text of a link if formatted in Markodwn, from a string
+def extract_link_title(text):
+    link, title = extract_link_title_html(text)
 
-    Args:
-        text (string): text where to look for the link
-    
-    Returns:
-        None if nothing found
-        Url link (string) if found
-    
-    Example:
-        >>> extract_link_text('https://www.tjis_is_my_link.fr')
-        None
-        >>> extract_link_text('[a link](https://www.tjis_is_my_link.fr)')
-        'a link'
-    """
-    match = re.search(pattern, text)
-    if match:
-        return match.group(1)
-    return None
+    if not link:
+        link, title = extract_link_rawtxt(text), ""
+
+    return link, title
