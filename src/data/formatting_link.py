@@ -7,7 +7,16 @@ def extract_link_rawtxt(text):
     # Regex pattern to match HTTP/HTTPS URLs
     pattern = r"https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+[/\w .-]*(?:\?[^\s]*)?"
     match = re.search(pattern, text)
-    return match.group(0) if match else None
+    if match:
+        href = match.group(0)
+        if href.startswith("https://tchap.gouv.fr/") or href.startswith(
+            "https://matrix.to"
+        ):
+            href = None
+    else:
+        href = None
+
+    return href
 
 
 # Function to extract the hyperlink and its title from an html formatted body
@@ -43,10 +52,15 @@ def extract_link_title_html(text):
     first_title = ""
     for link in links:
         href = link["href"]
-        if href.startswith(("http://", "https://")):
-            first_link = href
-            first_title = link.get_text(strip=True)  # Extract the title text
-            break
+        if href.startswith("https://tchap.gouv.fr/") or href.startswith(
+            "https://matrix.to"
+        ):  # Filtering internal links
+            href = None
+        if href is not None:
+            if href.startswith(("http://", "https://")):
+                first_link = href
+                first_title = link.get_text(strip=True)  # Extract the title text
+                break
 
     if first_link:
         return first_link, first_title
@@ -54,10 +68,14 @@ def extract_link_title_html(text):
         return None, None
 
 
+# %%
 def extract_link_title(text):
     link, title = extract_link_title_html(text)
 
-    if not link:
+    if not link or link == "None":
         link, title = extract_link_rawtxt(text), ""
 
     return link, title
+
+
+# %%

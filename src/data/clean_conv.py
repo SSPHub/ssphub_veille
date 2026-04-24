@@ -50,7 +50,7 @@ def clean_conv(file_path):
             + "/"
             + pl.col("event_id"),  # Creating link to tchap msg
             hyperlink=pl.col("formatted_body").map_elements(
-                lambda x: extract_link_title(x)
+                lambda x: extract_link_title(x), return_dtype=pl.List
             ),  # Extract hyperlink : <a href="https://www.insee.fr">Le plus beau site du monde</a> -> [https://www.insee.fr, Le plus beau site du monde]
         )
         .with_columns(
