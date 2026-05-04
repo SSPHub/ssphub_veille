@@ -5,9 +5,9 @@ import warnings
 
 warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)  # Filter out warning message from bs4 that identifies input to parse as html
 
+
 def extract_link_rawtxt(text):
-    # Regex pattern to match HTTP/HTTPS URLs
-    pattern = r"https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+[/\w .-]*(?:\?[^\s]*)?"
+    pattern = r"\bhttps?://\S+|www\.\S+"  # Regex pattern to match HTTP/HTTPS URLs
     match = re.search(pattern, text)
     if match:
         href = match.group(0)
@@ -17,7 +17,6 @@ def extract_link_rawtxt(text):
             href = None
     else:
         href = None
-
     return href
 
 
