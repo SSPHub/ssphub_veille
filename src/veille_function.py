@@ -86,7 +86,7 @@ def extract_and_add_to_veille(
     # Clean the conversation
     my_conv_df = clean_conv(input_conv_file_path)
     logger.info(
-        f"Conversation transformée en table Grist, nombre de liens : {len(my_conv_df)}"
+        f"Conversation transformée en table Grist, nombre de liens : {len(my_conv_df)}\nConversation propre (table my_conv_df):\n{my_conv_df}"
     )
 
     # Download data to filter new urls
@@ -95,7 +95,7 @@ def extract_and_add_to_veille(
         GristApi().fetch_table_pl(table_id=target_table).select("Lien_article").unique()
     )
     logger.info(
-        f"Table Grist cible {target_table} téléchargée, nombre de lignes : {len(old_conv_df)}"
+        f"Table Grist cible {target_table} téléchargée, nombre de lignes : {len(old_conv_df)}\nTable cible téléchargée (table old_conv_df):\n{old_conv_df}"
     )
 
     # Join new articles in former Grist table
@@ -107,6 +107,6 @@ def extract_and_add_to_veille(
             lambda x: convert_unix_time(x)
         )  # Convert from Unix time to human readable time
     )
-    logger.info(f"Nombre de lignes après filtre liens déjà présents: {len(my_conv_df)}")
+    logger.info(f"Nombre de lignes après filtre liens déjà présents: {len(my_conv_df)}\nTable finale à ajouter (table my_conv_df):\n{my_conv_df}")
 
     return add_to_veille(my_conv_df, target_table)

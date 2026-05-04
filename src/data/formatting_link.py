@@ -1,7 +1,9 @@
 import re
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning
+import warnings
 
+warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)  # Filter out warning message from bs4 that identifies input to parse as html
 
 def extract_link_rawtxt(text):
     # Regex pattern to match HTTP/HTTPS URLs
