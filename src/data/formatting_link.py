@@ -7,6 +7,20 @@ warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)  # Fil
 
 
 def extract_link_rawtxt(text):
+    """
+    Returns thr first url from raw text (not formatted as html or other)
+
+    Args:
+        text (string): raw text where to look for the link
+
+    Returns: 
+        Url link (string) - None if nothing found
+
+    Example:
+        >>> extract_link_rawtxt('coucou https://www.tjis_is_my_link.fr zoubidou https://exemple.fr')
+        'https://www.tjis_is_my_link.fr'
+    """
+    
     pattern = r"\bhttps?://\S+|www\.\S+"  # Regex pattern to match HTTP/HTTPS URLs
     match = re.search(pattern, text)
     if match:
