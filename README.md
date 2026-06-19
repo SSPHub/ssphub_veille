@@ -97,6 +97,111 @@ uv run main.py -t "Veille"
   - Filtering duplicate links and number of final links to be added,
   - Export to the target table and ids of the appended rows
 
+# Completing the Veille table with an LLM
+
+This is the second stage of the pipeline. Once links have been extracted from
+Tchap and added to the Grist table (see *Update to Grist table* above), this
+step goes back over the rows and fills in, for each one, the **title**, a short
+**summary** and one or more **categories**, using the SSP Cloud LLM lab. It then
+stamps the `Traitement` column so you can see what happened to each row.
+
+## What it does, row by row
+
+1. **Duplicates** (`Doublon_lien > 1`) are skipped and recorded in `Traitement`.
+2. It looks for a **working link**: it tries `Lien_article` first, then any link
+   found in `Resume`.
+   - If a link responds, the page is fetched and analysed.
+   - If no link responds **but** the row already has a title/summary, it falls
+     back to that existing text so a category can still be assigned. In this
+     fallback it only fills empty cells (it never overwrites your curated
+     title/summary, since there is no new information — just a re-reading).
+   - If there is neither a working link nor any text, the row is left with
+     `NO WORKING LINK FOUND`.
+3. The LLM is asked, in a single call, to return JSON with:
+   - `titre` — the article/blog/paper title (or a short invented one, ≤10 words);
+   - `resume` — a concise, telegraphic summary in French (2–3 sentences max);
+   - `categories` — chosen **from the existing categories**, guided by example
+     assignments taken from already-categorised rows. It must not duplicate a
+     similar existing category, and replies `["??"]` when it is unsure rather
+     than guessing.
+4. The results are written back to `Titre_article`, `Resume`, `Categorie`
+   (encoded as Grist's `["L", …]` choice list), and `Traitement` is timestamped.
+
+## Prerequisites
+
+In addition to the Grist setup documented above, you need an LLM lab key.
+
+Secrets (Onyxia → *Mes secrets*, same as for Grist):
+
+- `GRIST_VEILLE_DOC_ID`, `GRIST_SERVICE_ACCOUNT_VEILLE_KEY` (or `GRIST_API_KEY`) —
+  the Grist access already used by the extraction step.
+- `LLM_LAB_API_KEY` — your key for <https://llm.lab.sspcloud.fr/api>.
+
+Optional overrides: `LLM_LAB_ENDPOINT` (default `https://llm.lab.sspcloud.fr/api`)
+and `LLM_MODEL_NAME` (default `gemma4-26b-moe`).
+
+> **One-time Grist check:** the `Traitement` column must be a **data** column
+> (type Text), not a formula column. If it is a formula column, the API cannot
+> write to it; the script detects this and stops with a clear message before
+> spending any LLM calls. `Doublon_lien` is expected to stay a formula column —
+> it is only read.
+
+## Usage
+
+Everything is exposed through a single command, `veille.py`, with two
+subcommands (the original `main.py` still works for extraction too):
+
+```bash
+# 1) extraction (unchanged): Tchap export -> new Grist rows
+uv run veille.py extract -f export.json -t Veille
+
+# 2) completion: fill title / summary / category on existing rows
+#    Always dry-run first — it prints the exact update for each row, writes nothing.
+uv run veille.py complete -t Veille --only-empty --limit 5 --dry-run
+
+# write the first 5 for real, then the rest
+uv run veille.py complete -t Veille --only-empty --limit 5
+uv run veille.py complete -t Veille --only-empty
+```
+
+### `complete` options
+
+| Option | Effect |
+| --- | --- |
+| `-t, --table` | Grist table id (e.g. `Veille`). |
+| `--only-empty` | Fill only empty cells; never overwrite an existing title/summary/category, and skip rows that are already complete (no LLM call). Recommended on a table that already holds curated content. |
+| `--since YYYY-MM-DD` | Only process rows whose date column is on/after this date. |
+| `--date-column` | Column compared against `--since` (default `Date`). |
+| `--limit N` | Process at most N rows (useful for a first run). |
+| `--force` | Reprocess rows that already have a `Traitement` value. |
+| `--dry-run` | Compute updates and log them, but do not write to Grist. |
+| `--n-examples N` | Number of example category assignments sent to the LLM (default 15). |
+
+Without `--only-empty`, the completion **overwrites** `Titre_article`, `Resume`
+and `Categorie` whenever a page is successfully fetched. Use `--only-empty` if
+you want to preserve existing, hand-written content.
+
+## Notes & limitations
+
+- Links on sites that block scrapers or serve JavaScript-only pages (x.com,
+  reddit, LinkedIn, youtube, some news sites) will fail the link check; those
+  rows fall back to their existing text (for categorisation) or end up as
+  `NO WORKING LINK FOUND` if they have no text.
+- The category vocabulary is read from the table itself, so it grows/cleans up
+  as you curate the table. `??` is the designated "unknown / unsure" category.
+
+## Tests
+
+`test_complete_veille.py` covers the pure logic (duplicate detection, link
+resolution, category encoding, JSON parsing, gap-filling and the fallback path)
+with the network and LLM mocked. `test_realdata.py` runs the same logic over a
+real Grist snapshot. Run them with:
+
+```bash
+uv run python test_complete_veille.py
+uv run python test_realdata.py   # expects a Veille_-_test.grist file alongside
+```
+
 # Bugs
 
 - If everything works correctly but no update, the Grist API may not work and redirect to GET request.
