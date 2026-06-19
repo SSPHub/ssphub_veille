@@ -115,3 +115,33 @@ class GristApi:
             f"{self.table_url}/{table_id}/records", headers=self.headers, **kwarg
         )
         return response
+
+
+    def update_records(self, table_id, **kwarg):
+        """
+        Wrapper for a PATCH request to update *existing* records in a table.
+
+        Grist expects a body shaped like:
+            {"records": [{"id": <row_id>, "fields": {<col>: <value>, ...}}, ...]}
+        i.e. each record must carry the row "id" plus the "fields" to overwrite.
+        Only the columns provided in "fields" are modified; the others are left
+        untouched.
+
+        Args:
+            table_id: the grist table id
+            Additionnal arguments to pass on to requests.patch() (typically json=...)
+
+        Returns:
+            response from requests.patch
+
+        Example:
+        >>> GristApi().update_records(
+        ...     "Test",
+        ...     json={"records": [{"id": 12, "fields": {"Traitement": "OK"}}]},
+        ... )
+        <Response [200]>
+        """
+        response = requests.patch(
+            f"{self.table_url}/{table_id}/records", headers=self.headers, **kwarg
+        )
+        return response
