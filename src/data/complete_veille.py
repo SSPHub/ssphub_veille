@@ -286,6 +286,7 @@ def _build_analysis_messages(
         'IMPORTANT : si tu n\'es pas sur de la categorie, reponds exactement ["??"] '
         "(c'est la categorie reservee a l'incertitude) ; ne devine pas."
         "Ne donne pas plus de 4 catgégories à un article."
+        " Les catégories sont en français ('education' est formation par exemple)"
     )
 
     if from_page:
