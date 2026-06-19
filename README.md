@@ -150,7 +150,10 @@ uv run veille.py complete -t Veille                   # then the rest
 1. **Duplicates** (`Doublon_lien > 1`) are skipped and noted in `Traitement`.
 2. The tool looks for a **working link**: it tries `Lien_article` first, then any
    link found in `Resume`.
-   - If a link responds, the page is fetched and analysed.
+   - If a link responds, the page is fetched and analysed. If the link that
+     worked is not the one stored in `Lien_article` (a backup link taken from
+     `Resume`, or a clean URL extracted from malformed markdown), `Lien_article`
+     is updated to that working link.
    - If no link responds **but** the row already has a title/summary, it falls
      back to that text so a category can still be assigned. In this fallback it
      only fills empty cells — it never overwrites a hand-written title/summary,
