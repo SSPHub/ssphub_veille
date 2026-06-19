@@ -1,7 +1,7 @@
 [project]
-name = "work"
-version = "0.1.0"
-description = "Add your description here"
+name = "SSPHub_veille_outils"
+version = "0.2.0"
+description = "Project to extract information from a Tchap discussion and complete link of interessant articles into a Grist table"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -22,4 +22,3 @@ testpaths = ["src/test"]
 # test_all.py is a manual smoke script that writes to the live Grist Test table
 # (run it via `python test.py`); keep it out of the automated pytest run.
 addopts = "--ignore=src/test/test_all.py"
- 
