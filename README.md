@@ -101,9 +101,10 @@ uv run main.py -t "Veille"
 
 This is the second stage of the pipeline. Once links have been extracted from
 Tchap and added to the Grist table (see *Update to Grist table* above), this
-step goes back over the rows and fills in, for each one, the **title**, a short
-**summary** and one or more **categories**, using the SSP Cloud LLM lab. It then
-stamps the `Traitement` column so you can see what happened to each row.
+step goes over the rows **whose `Traitement` column is empty** and fills in, for
+each one, the **title**, a short **summary** and one or more **categories**,
+using the SSP Cloud LLM lab. It then stamps the `Traitement` column, so a row is
+processed once and skipped on the next run.
 
 ## What it does, row by row
 
@@ -155,31 +156,34 @@ subcommands (the original `main.py` still works for extraction too):
 # 1) extraction (unchanged): Tchap export -> new Grist rows
 uv run veille.py extract -f export.json -t Veille
 
-# 2) completion: fill title / summary / category on existing rows
+# 2) completion: process the rows whose Traitement is empty
 #    Always dry-run first — it prints the exact update for each row, writes nothing.
-uv run veille.py complete -t Veille --only-empty --limit 5 --dry-run
+uv run veille.py complete -t Veille --limit 5 --dry-run
 
 # write the first 5 for real, then the rest
-uv run veille.py complete -t Veille --only-empty --limit 5
-uv run veille.py complete -t Veille --only-empty
+uv run veille.py complete -t Veille --limit 5
+uv run veille.py complete -t Veille
 ```
+
+Rows are selected solely on `Traitement` being empty. A successful run stamps
+`Traitement`, so the same row is not processed twice; to redo a row, clear its
+`Traitement` cell in Grist.
 
 ### `complete` options
 
 | Option | Effect |
 | --- | --- |
 | `-t, --table` | Grist table id (e.g. `Veille`). |
-| `--only-empty` | Fill only empty cells; never overwrite an existing title/summary/category, and skip rows that are already complete (no LLM call). Recommended on a table that already holds curated content. |
-| `--since YYYY-MM-DD` | Only process rows whose date column is on/after this date. |
-| `--date-column` | Column compared against `--since` (default `Date`). |
-| `--limit N` | Process at most N rows (useful for a first run). |
-| `--force` | Reprocess rows that already have a `Traitement` value. |
+| `--limit N` | Process at most N rows (useful for a first run / testing). |
 | `--dry-run` | Compute updates and log them, but do not write to Grist. |
 | `--n-examples N` | Number of example category assignments sent to the LLM (default 15). |
 
-Without `--only-empty`, the completion **overwrites** `Titre_article`, `Resume`
-and `Categorie` whenever a page is successfully fetched. Use `--only-empty` if
-you want to preserve existing, hand-written content.
+When a page is fetched successfully, the LLM results **overwrite**
+`Titre_article`, `Resume` and `Categorie`. When the page can't be fetched, the
+fallback only *fills* empty cells from the existing text (it never overwrites a
+hand-written title/summary). Column names (`Lien_article`, `Resume`,
+`Titre_article`, `Categorie`, `Doublon_lien`, `Traitement`) are defined as
+constants at the top of `src/data/complete_veille.py`.
 
 ## Notes & limitations
 

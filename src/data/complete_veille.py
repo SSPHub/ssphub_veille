@@ -376,24 +376,21 @@ def fallback_text(row: dict) -> str:
     return "\n".join(p for p in parts if p)
 
 
-def process_row(row: dict, vocabulary, examples, logger, only_empty=False) -> dict | None:
+def process_row(row: dict, vocabulary, examples, logger) -> dict:
     """
     Compute the {column_name: new_value} dict to PATCH for a single row.
     Never raises on expected conditions; the `Traitement` column always reflects
     what happened.
 
     Link handling:
-      - if a link works, the article page is analysed (and, outside only_empty
-        mode, the LLM results overwrite the cells);
+      - if a link works, the article page is analysed and the LLM results are
+        written to the cells (overwrite);
       - if no link works but the row already has a title/summary, we fall back to
         analysing that existing text so a category can still be assigned. In this
         fallback we ONLY fill empty cells (no overwrite), because there is no new
         ground truth, just a re-reading of the same text;
       - if there's neither a working link nor any existing text, the row is left
         with "NO WORKING LINK FOUND".
-
-    When `only_empty` is True, columns that already hold a value are left
-    untouched, and a fully-completed row is skipped (returns None, no LLM call).
     """
     row_id = row.get("id")
 
@@ -408,19 +405,14 @@ def process_row(row: dict, vocabulary, examples, logger, only_empty=False) -> di
     has_resume = bool(clean_text(row.get(COL_RESUME)))
     has_cat = bool(normalise_categories(row.get(COL_CATEGORY)))
 
-    # In gap-filling mode, a fully-completed row needs no work at all.
-    if only_empty and has_title and has_resume and has_cat:
-        logger.info(f"[id {row_id}] deja complete -> ignore (--only-empty)")
-        return None
-
     # 2. Find a working link.
     url, html = resolve_working_link(row, logger)
 
     if url is not None:
-        # Page fetched: analyse it. Overwrite allowed (unless only_empty).
+        # Page fetched: analyse it and overwrite the cells.
         logger.info(f"[id {row_id}] analyse LLM de {url}")
         analysis = analyze_article(html_to_text(html), url, vocabulary, examples, from_page=True)
-        gap_only = only_empty
+        gap_only = False
         note = f"Traite le {now_stamp()}"
     else:
         # 3. Fallback: no reachable link -> use the existing title/summary so we
@@ -436,7 +428,7 @@ def process_row(row: dict, vocabulary, examples, logger, only_empty=False) -> di
         note = f"Traite via texte existant (lien injoignable) le {now_stamp()}"
 
     # 4. Build the update dict keyed by Grist column names.
-    #    `gap_only` -> never overwrite a cell that already has content.
+    #    `gap_only` (fallback only) -> never overwrite a cell that already has content.
     fields = {COL_PROCESS: note}
     if analysis["titre"] and not (gap_only and has_title):
         fields[COL_TITLE] = analysis["titre"]
@@ -447,50 +439,12 @@ def process_row(row: dict, vocabulary, examples, logger, only_empty=False) -> di
     return fields
 
 
-def select_rows(rows, since, date_column, force) -> list[dict]:
+def select_rows(rows) -> list[dict]:
     """
-    Keep rows worth processing:
-      - if `force` is False, skip rows whose `Traitement` is already filled;
-      - if `since` is given, keep rows whose `date_column` >= since.
-    Rows with an unpar, missing or unparsable date are kept (we'd rather process
-    a bit too much than silently drop a row).
+    Keep only the rows that still need processing: those whose `Traitement`
+    column is empty.
     """
-    selected = []
-    for row in rows:
-        if not force and str(row.get(COL_PROCESS) or "").strip():
-            continue
-        if since is not None:
-            row_date = _parse_date(row.get(date_column))
-            if row_date is not None and row_date < since:
-                continue
-        selected.append(row)
-    return selected
-
-
-def _parse_date(value):
-    """
-    Parse a Grist date cell into a datetime, or None if not parseable.
-    Handles the string formats written by the pipeline AND the numeric epoch
-    (seconds, or milliseconds) that DateTime columns return through the API.
-    """
-    if value is None or value == "":
-        return None
-    # DateTime / Date columns come back as epoch numbers through the API.
-    if isinstance(value, (int, float)):
-        ts = float(value)
-        if ts >= 1e12:  # milliseconds
-            ts /= 1000
-        try:
-            return datetime.fromtimestamp(ts)
-        except (OverflowError, OSError, ValueError):
-            return None
-    text = str(value).strip()
-    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
-        try:
-            return datetime.strptime(text, fmt)
-        except ValueError:
-            continue
-    return None
+    return [row for row in rows if not clean_text(row.get(COL_PROCESS))]
 
 
 def formula_target_columns(api, table_id, target_cols, logger) -> list[str]:
@@ -521,27 +475,18 @@ def formula_target_columns(api, table_id, target_cols, logger) -> list[str]:
 # --------------------------------------------------------------------------- #
 def complete_veille(
     table_id="Test",
-    since=None,
-    date_column="Date",
     limit=None,
-    force=False,
     dry_run=False,
-    only_empty=False,
     n_examples=DEFAULT_N_EXAMPLES,
     logger=None,
 ):
     """
-    Complete the rows of `table_id`.
+    Complete the rows of `table_id` whose `Traitement` column is empty.
 
     Args:
         table_id: Grist table id (e.g. "Test" or "Veille").
-        since: optional `datetime`; only rows on/after this date are processed.
-        date_column: column compared against `since` (default "Date").
         limit: optional cap on the number of rows processed (handy for testing).
-        force: reprocess rows that already have a `Traitement` value.
         dry_run: compute everything but do NOT write back to Grist.
-        only_empty: only fill empty cells; never overwrite curated title/summary/
-            category, and skip rows that are already complete (no LLM call).
         n_examples: number of example category assignments sent to the LLM.
 
     Returns:
@@ -577,21 +522,18 @@ def complete_veille(
         f"{len(vocabulary)} categories existantes, {len(examples)} exemples d'affectation"
     )
 
-    targets = select_rows(rows, since, date_column, force)
+    targets = select_rows(rows)  # rows whose Traitement is empty
     if limit is not None:
         targets = targets[:limit]
-    logger.info(f"{len(targets)} lignes a traiter")
+    logger.info(f"{len(targets)} lignes a traiter (Traitement vide)")
 
     updates = []
     for row in targets:
         try:
-            fields = process_row(row, vocabulary, examples, logger, only_empty=only_empty)
+            fields = process_row(row, vocabulary, examples, logger)
         except Exception as exc:  # never let one row kill the batch
             logger.error(f"[id {row.get('id')}] erreur inattendue : {exc}")
             fields = {COL_PROCESS: f"ERREUR : {exc} - {now_stamp()}"}
-
-        if fields is None:  # only_empty: nothing to do for this row
-            continue
 
         update = {"id": row.get("id"), "fields": fields}
         updates.append(update)

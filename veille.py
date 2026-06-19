@@ -12,20 +12,6 @@ does not require the extraction dependencies and vice-versa.
 """
 
 import argparse
-from datetime import datetime
-
-
-def _parse_since(value):
-    if value is None:
-        return None
-    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
-        try:
-            return datetime.strptime(value, fmt)
-        except ValueError:
-            continue
-    raise argparse.ArgumentTypeError(
-        f"Date invalide '{value}'. Formats acceptes : YYYY-MM-DD[ HH:MM[:SS]]"
-    )
 
 
 # --------------------------------------------------------------------------- #
@@ -44,12 +30,8 @@ def cmd_complete(args):
 
     complete_veille(
         table_id=args.table,
-        since=args.since,
-        date_column=args.date_column,
         limit=args.limit,
-        force=args.force,
         dry_run=args.dry_run,
-        only_empty=args.only_empty,
         n_examples=args.n_examples,
     )
 
@@ -77,35 +59,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     pc.add_argument("-t", "--table", default="Test", help="Grist table id (default: Test).")
     pc.add_argument(
-        "--since",
-        type=_parse_since,
-        default=None,
-        help="Only process rows whose date column is on/after this date "
-        "(YYYY-MM-DD[ HH:MM[:SS]]).",
-    )
-    pc.add_argument(
-        "--date-column",
-        default="Date",
-        help="Column compared against --since (default: Date).",
-    )
-    pc.add_argument(
         "--limit", type=int, default=None, help="Cap the number of rows processed."
-    )
-    pc.add_argument(
-        "--force",
-        action="store_true",
-        help="Reprocess rows that already have a Traitement value.",
     )
     pc.add_argument(
         "--dry-run",
         action="store_true",
         help="Compute updates but do not write back to Grist.",
-    )
-    pc.add_argument(
-        "--only-empty",
-        action="store_true",
-        help="Only fill empty cells; never overwrite an existing title/summary/"
-        "category, and skip rows already complete (no LLM call).",
     )
     pc.add_argument(
         "--n-examples",
