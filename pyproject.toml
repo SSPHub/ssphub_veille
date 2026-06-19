@@ -13,3 +13,13 @@ dependencies = [
     "pytest>=9.0.1",
     "requests>=2.32.5",
 ]
+
+[tool.pytest.ini_options]
+# Put the repo root on sys.path so tests under src/test/ can do absolute
+# imports like `import src.data.complete_veille` when run via `uv run pytest`.
+pythonpath = ["."]
+testpaths = ["src/test"]
+# test_all.py is a manual smoke script that writes to the live Grist Test table
+# (run it via `python test.py`); keep it out of the automated pytest run.
+addopts = "--ignore=src/test/test_all.py"
+ 
