@@ -297,7 +297,7 @@ def _build_analysis_messages(
         )
         resume_instr = (
             '- "resume": un resume tres concis, en francais, style telegraphique, '
-            "2 a 3 phrases maximum."
+            "2 a 3 phrases maximum. Donne le résultat de l'analyse s'il existe."
         )
         content_label = "Contenu de l'article :"
     else:
