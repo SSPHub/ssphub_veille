@@ -4,8 +4,15 @@ Unit tests for the LLM completion stage (`src/data/complete_veille.py`).
 Self-contained: no network, no Grist/LLM credentials, no data file — the page
 fetch and the LLM call are mocked. Run from the repository root:
 
-    uv run pytest test_complete_veille.py
+    uv run pytest src/test/test_complete_veille.py
 """
+
+import os
+import sys
+
+# Allow running this file directly (`uv run src/test/test_complete_veille.py`),
+# not only via pytest: put the repo root on sys.path so `import src...` resolves.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 import doctest
 from unittest import mock
@@ -220,3 +227,8 @@ def test_formula_target_columns_tolerates_fetch_error():
     api.fetch_columns.side_effect = RuntimeError("network down")
     # On a metadata-fetch error it warns and returns [] (does not block the run).
     assert cv.formula_target_columns(api, "Veille", [cv.COL_PROCESS], mock.Mock()) == []
+
+
+if __name__ == "__main__":
+    # `uv run src/test/test_complete_veille.py` -> run this file through pytest.
+    raise SystemExit(pytest.main([__file__, "-v", "-rs"]))
