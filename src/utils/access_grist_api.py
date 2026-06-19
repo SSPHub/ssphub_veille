@@ -81,6 +81,20 @@ class GristApi:
             .unnest(columns="fields")
         )
 
+    def fetch_columns(self, table_id, **kwarg):
+        """
+        GET the column metadata of a table.
+
+        Returns the raw requests response; the JSON payload looks like
+        {"columns": [{"id": <colId>, "fields": {"type": ..., "isFormula": ...}}]}.
+        Useful to check, before writing, that a target column is a writable data
+        column (isFormula == False) and not a formula column.
+        """
+        response = requests.get(
+            f"{self.table_url}/{table_id}/columns", headers=self.headers, **kwarg
+        )
+        return response
+
     def add_records(self, table_id, **kwarg):
         """
         Wrapper for a POST requests to add records to a table.
