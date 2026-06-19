@@ -6,7 +6,12 @@ import requests
 
 
 class GristApi:
-    def __init__(self, doc_id=os.environ["GRIST_VEILLE_DOC_ID"]):
+    def __init__(self, doc_id=None):
+        # Resolved here (not as a default argument) so that *importing* GristApi
+        # does not require GRIST_VEILLE_DOC_ID to be set — only instantiating it
+        # does. This keeps imports (and test collection) working without secrets.
+        if doc_id is None:
+            doc_id = os.environ["GRIST_VEILLE_DOC_ID"]
         if "GRIST_SERVICE_ACCOUNT_VEILLE_KEY" in os.environ:
             token = os.environ.get("GRIST_SERVICE_ACCOUNT_VEILLE_KEY", "")
         else:
