@@ -12,6 +12,7 @@ dependencies = [
     "polars>=1.35.2",
     "pytest>=9.0.1",
     "requests>=2.32.5",
+    "tzdata>=2024.1",
 ]
 
 [tool.pytest.ini_options]

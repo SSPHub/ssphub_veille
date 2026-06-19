@@ -21,6 +21,7 @@ the behaviour matches the three-step spec.
 
 import re
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import requests
 from bs4 import BeautifulSoup
@@ -42,6 +43,7 @@ COL_PROCESS = "Traitement"
 REQUEST_TIMEOUT = 15  # seconds, when checking/fetching a link
 MAX_ARTICLE_CHARS = 8000  # how much article text we feed the LLM
 DEFAULT_N_EXAMPLES = 15  # category example assignments sent to the LLM
+PARIS_TZ = ZoneInfo("Europe/Paris")  # timestamps written to Grist use Paris time
 USER_AGENT = (
     "Mozilla/5.0 (compatible; ssphub-veille-bot/1.0; "
     "+https://github.com/SSPHub/ssphub_veille)"
@@ -57,7 +59,8 @@ _INTERNAL_PREFIXES = ("https://tchap.gouv.fr/", "https://matrix.to")
 # Small pure helpers (unit-tested)
 # --------------------------------------------------------------------------- #
 def now_stamp() -> str:
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    """Current time in the Europe/Paris timezone, as 'YYYY-MM-DD HH:MM:SS'."""
+    return datetime.now(PARIS_TZ).strftime("%Y-%m-%d %H:%M:%S")
 
 
 def is_duplicate(doublon_value) -> bool:
