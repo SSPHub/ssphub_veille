@@ -5,8 +5,7 @@ Unified entry point for the SSPHub veille pipeline.
     uv run veille.py complete             -t Veille                  # rows -> LLM
     uv run veille.py extract-and-complete -t Veille                  # both, in order
 
-Each stage is also available on its own (`main.py` still works for extraction);
-this just gives one discoverable front door with one `--help`.
+A single, discoverable front door for the pipeline, with one `--help`.
 
 Imports are done lazily inside each handler so that, e.g., running `complete`
 does not require the extraction dependencies and vice-versa.
