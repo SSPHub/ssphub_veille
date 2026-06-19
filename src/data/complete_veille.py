@@ -316,7 +316,7 @@ def _build_analysis_messages(
         resume_instr = (
             '- "resume": uniquement si le texte fournit assez d\'information, un resume '
             "tres concis en francais (style telegraphique, 2-3 phrases). Sinon, laisse "
-            "une chaine vide. N'invente rien."
+            "une chaine vide. N'invente rien. Donne le résultat de l'analyse s'il existe."
         )
         content_label = "Titre et resume existants (la page est inaccessible) :"
 
