@@ -1,25 +1,32 @@
 """
 Run the completion logic over the REAL rows of the Grist `Test` table.
 
-This is an integration test for the *data shapes*: it fetches the live `Test`
-table of the Veille document (read-only — it never writes back), then runs the
-completion logic over every row with the page fetch and the LLM call mocked, so
-it is deterministic and spends no LLM credits.
+Integration test against the live `Test` table of the Veille document. Most
+tests are read-only and run the completion logic with the page fetch and the LLM
+call mocked, so they are deterministic and spend no LLM credits. One test
+(`test_update_records_roundtrip`) exercises the real write path: it PATCHes a
+sentinel into a single row's `Traitement`, checks it landed, then restores the
+original value — so the table is left exactly as it was found.
 
 It needs Grist credentials (`GRIST_VEILLE_DOC_ID` plus
 `GRIST_SERVICE_ACCOUNT_VEILLE_KEY` or `GRIST_API_KEY`) and network access. When
 those are absent — e.g. in CI without secrets — the whole module is SKIPPED, so
 it is safe to keep in the suite.
 
-    uv run pytest test_realdata.py
-    VEILLE_TEST_TABLE="Test" uv run pytest test_realdata.py   # override table id
+    uv run pytest src/test/test_realdata.py
+    VEILLE_TEST_TABLE="Test" uv run pytest src/test/test_realdata.py  # override table
 
-The assertions check invariants (rows load, every result is a valid PATCH
+Read-only assertions check invariants (rows load, every result is a valid PATCH
 payload, the fallback categorises un-scrapeable rows without overwriting titles),
 not specific ids or counts, so they keep passing as the table evolves.
 """
 
 import os
+import sys
+
+# Allow running this file directly (`uv run src/test/test_realdata.py`), not
+# only via pytest: put the repo root on sys.path so `import src...` resolves.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from unittest import mock
 
@@ -109,3 +116,36 @@ def test_fallback_categorises_unscrapeable_rows(rows, vocab, examples):
             assert fields[cv.COL_CATEGORY] == ["L", "IA"]
             if cv.clean_text(r.get("Titre_article")):
                 assert cv.COL_TITLE not in fields  # existing title preserved
+
+
+def test_update_records_roundtrip(rows):
+    """Real write path against Grist: PATCH a sentinel into one row's
+    `Traitement`, confirm it landed, then restore the original value."""
+    if not rows:
+        pytest.skip("the Test table is empty")
+
+    target = rows[0]
+    row_id = target["id"]
+    original = target.get(cv.COL_PROCESS)
+    sentinel = f"__pytest_roundtrip__ {os.getpid()}"
+    api = cv.GristApi()
+
+    try:
+        resp = api.update_records(
+            TEST_TABLE, json={"records": [{"id": row_id, "fields": {cv.COL_PROCESS: sentinel}}]}
+        )
+        assert resp.status_code == 200, (resp.status_code, resp.text[:200])
+
+        after = {r["id"]: r for r in api.fetch_table_pl(TEST_TABLE).to_dicts()}
+        assert after[row_id][cv.COL_PROCESS] == sentinel
+    finally:
+        # Always restore the original value (empty string clears the cell).
+        api.update_records(
+            TEST_TABLE,
+            json={"records": [{"id": row_id, "fields": {cv.COL_PROCESS: original or ""}}]},
+        )
+
+
+if __name__ == "__main__":
+    # `uv run src/test/test_realdata.py` -> run this file through pytest.
+    raise SystemExit(pytest.main([__file__, "-v", "-rs"]))
