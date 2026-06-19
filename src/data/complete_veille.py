@@ -282,6 +282,7 @@ def _build_analysis_messages(
         "clairement distinct n'est couvert par aucune categorie existante. "
         'IMPORTANT : si tu n\'es pas sur de la categorie, reponds exactement ["??"] '
         "(c'est la categorie reservee a l'incertitude) ; ne devine pas."
+        "Ne donne pas plus de 4 catgégories à un article."
     )
 
     if from_page:
