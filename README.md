@@ -241,6 +241,36 @@ If the second response is `<Response [302]>`, the redirect problem is present.
 
 ## Project structure
 
-![Overview of the functions (excluding tests)](docs/call_graph_all_but_test.png)
+```text
+ssphub_veille/
+├── veille.py                        # CLI entry point: `extract`, `complete`, `extract-and-complete`
+├── test.py                          # runs the Grist POST-redirect check (see Troubleshooting)
+├── pyproject.toml                   # project metadata, dependencies, pytest config
+├── uv.lock                          # locked dependency versions (uv)
+├── .python-version                  # pinned Python version
+├── README.md                        # this file
+├── src/                             # Python package
+│   ├── veille_function.py           # EXTRACT stage: clean a Tchap export, add new rows to Grist
+│   ├── data/                        # data shaping + the completion stage
+│   │   ├── clean_conv.py            # parse the Tchap json export into a table of links
+│   │   ├── formatting_link.py       # pull link text/url out of Markdown & HTML
+│   │   ├── formatting_time.py       # Tchap Unix timestamp -> readable date
+│   │   └── complete_veille.py       # COMPLETE stage: pick rows, resolve link, call LLM, write back
+│   ├── utils/                       # shared helpers
+│   │   ├── access_grist_api.py      # GristApi: read/add/update Grist records & columns
+│   │   ├── llm_client.py            # OpenAI-compatible client for the SSP Cloud LLM lab
+│   │   └── logging.py               # setup_logging() helper
+│   └── test/                        # tests
+│       ├── test_complete_veille.py  # pytest unit tests for completion (mocked, no creds)
+│       ├── test_realdata.py         # pytest integration tests on the live Grist Test table
+│       ├── test_all.py              # manual smoke scripts hitting live Grist (run via test.py)
+│       └── test_grist.sh            # curl version of the redirect check
+└── docs/                            # setup screenshots + call graph
+    ├── graphs.sh                    # regenerate the call graph (code2flow)
+    ├── call_graph_all_but_test.png  # generated function call graph
+    └── *.png                        # setup screenshots used in this README
+```
 
-Regenerate the graph with `bash docs/graphs.sh`.
+The function-level call graph (regenerate with `bash docs/graphs.sh`):
+
+![Overview of the functions (excluding tests)](docs/call_graph_all_but_test.png)
