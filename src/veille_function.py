@@ -29,7 +29,7 @@ def add_to_veille(my_conv_df, target_table="Test", logger=setup_logging()):
         "link_text": "Titre_article",
         "hyperlink": "Lien_article",
         "msg_link": "Quel_chanel",
-        "body": "Resume",
+        "body": "Message",
         "origin_server_ts": "Date",
     }
 

@@ -1,17 +1,25 @@
 [project]
-name = "work"
-version = "0.1.0"
-description = "Add your description here"
+name = "SSPHub_veille_outils"
+version = "0.2.0"
+description = "Project to extract information from a Tchap discussion and complete link of interessant articles into a Grist table"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "argparse>=1.4.0",
     "bs4>=0.0.2",
     "code2flow>=2.5.1",
-    "datetime>=5.5",
-    "logging>=0.4.9.6",
+    "openai>=2.43.0",
     "pandas>=2.3.3",
     "polars>=1.35.2",
     "pytest>=9.0.1",
     "requests>=2.32.5",
 ]
+
+[tool.pytest.ini_options]
+# Put the repo root on sys.path so tests under src/test/ can do absolute
+# imports like `import src.data.complete_veille` when run via `uv run pytest`.
+pythonpath = ["."]
+testpaths = ["src/test"]
+# test_all.py holds manual smoke checks that write to the live Grist Test table
+# (run e.g. `python -c "from src.test.test_all import test_redirect_post; test_redirect_post()"`);
+# keep it out of the automated pytest run.
+addopts = "--ignore=src/test/test_all.py"
