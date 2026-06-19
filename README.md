@@ -12,6 +12,8 @@ pipeline around a Grist *Veille* table:
 Both stages are driven from a single command-line tool, `veille.py`, and are
 meant to run on [SSPCloud / Onyxia](https://datalab.sspcloud.fr/).
 
+Des assistants d'IA ont été utilisés pour ce repo. 
+
 ## Pipeline at a glance
 
 ```
