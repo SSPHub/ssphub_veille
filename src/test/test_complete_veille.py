@@ -148,6 +148,47 @@ def test_process_row_happy_path(vocab, examples):
     assert fields["Resume"] == "Resume telegraphique. Deux phrases."
     assert fields["Categorie"] == ["L", "IA"]  # Grist choice-list encoding
     assert fields["Traitement"].startswith("Traite le")
+    assert cv.COL_LINK not in fields  # original link worked -> not rewritten
+
+
+def test_process_row_keeps_lien_article_when_original_works(vocab, examples):
+    fake_llm = {"titre": "T", "resume": "R", "categories": ["IA"]}
+    with mock.patch.object(cv, "fetch_if_working", return_value=FAKE_HTML), \
+         mock.patch.object(cv, "ask_json", return_value=fake_llm):
+        fields = cv.process_row(
+            {"id": 20, "Doublon_lien": 1, "Lien_article": "https://live.fr", "Resume": ""},
+            vocab, examples, mock.Mock(),
+        )
+    assert cv.COL_LINK not in fields  # no spurious rewrite
+
+
+def test_process_row_writes_back_backup_link_from_resume(vocab, examples):
+    fake_llm = {"titre": "T", "resume": "R", "categories": ["IA"]}
+
+    def fake_fetch(url, logger):  # only the Resume backup responds
+        return FAKE_HTML if url == "https://backup.fr" else None
+
+    with mock.patch.object(cv, "fetch_if_working", side_effect=fake_fetch), \
+         mock.patch.object(cv, "ask_json", return_value=fake_llm):
+        fields = cv.process_row(
+            {"id": 21, "Doublon_lien": 1, "Lien_article": "https://dead.fr",
+             "Resume": "essaie plutot https://backup.fr"},
+            vocab, examples, mock.Mock(),
+        )
+    assert fields[cv.COL_LINK] == "https://backup.fr"  # Lien_article updated
+
+
+def test_process_row_writes_back_link_extracted_from_markdown(vocab, examples):
+    fake_llm = {"titre": "T", "resume": "R", "categories": ["IA"]}
+    with mock.patch.object(cv, "fetch_if_working", return_value=FAKE_HTML), \
+         mock.patch.object(cv, "ask_json", return_value=fake_llm):
+        fields = cv.process_row(
+            {"id": 22, "Doublon_lien": 1,
+             "Lien_article": "[ici](https://clean.fr/a) et [x](https://clean.fr/b)",
+             "Resume": ""},
+            vocab, examples, mock.Mock(),
+        )
+    assert fields[cv.COL_LINK] == "https://clean.fr/a"  # clean URL written back
 
 
 # --------------------------------------------------------------------------- #
