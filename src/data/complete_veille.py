@@ -385,7 +385,9 @@ def process_row(row: dict, vocabulary, examples, logger) -> dict:
 
     Link handling:
       - if a link works, the article page is analysed and the LLM results are
-        written to the cells (overwrite);
+        written to the cells (overwrite). If the link that worked is not the one
+        stored in `Lien_article` (a backup link taken from `Resume`, or a clean
+        URL extracted from malformed markdown), `Lien_article` is updated to it;
       - if no link works but the row already has a title/summary, we fall back to
         analysing that existing text so a category can still be assigned. In this
         fallback we ONLY fill empty cells (no overwrite), because there is no new
@@ -431,6 +433,12 @@ def process_row(row: dict, vocabulary, examples, logger) -> dict:
     # 4. Build the update dict keyed by Grist column names.
     #    `gap_only` (fallback only) -> never overwrite a cell that already has content.
     fields = {COL_PROCESS: note}
+    # If the link that actually worked is not the one stored in Lien_article
+    # (a backup link from Resume, or a clean URL extracted from malformed
+    # markdown), write it back so the table holds the working link.
+    if url is not None and url != clean_text(row.get(COL_LINK)):
+        logger.info(f"[id {row_id}] Lien_article mis a jour -> {url}")
+        fields[COL_LINK] = url
     if analysis["titre"] and not (gap_only and has_title):
         fields[COL_TITLE] = analysis["titre"]
     if analysis["resume"] and not (gap_only and has_resume):
@@ -499,7 +507,7 @@ def complete_veille(
     # Pre-flight: make sure the columns we intend to write are writable.
     # `Traitement` in particular is often an (empty) formula column, which Grist
     # refuses to write to -> every PATCH would fail. Stop early if so.
-    target_cols = [COL_PROCESS, COL_TITLE, COL_RESUME, COL_CATEGORY]
+    target_cols = [COL_PROCESS, COL_TITLE, COL_RESUME, COL_CATEGORY, COL_LINK]
     blocked = formula_target_columns(api, table_id, target_cols, logger)
     if blocked and not dry_run:
         raise RuntimeError(
