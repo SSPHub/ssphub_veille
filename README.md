@@ -133,8 +133,7 @@ uv run veille.py complete -t Veille                   # then the rest
 
 > The `Test` and `Veille` tables are two separate destinations. `Test` is the
 > default everywhere, so a bare command never touches production; pass
-> `-t Veille` to write to the real table. The legacy `main.py` still works for
-> extraction and is equivalent to `veille.py extract`.
+> `-t Veille` to write to the real table.
 
 #### `complete` / `extract-and-complete` options
 
@@ -192,13 +191,30 @@ columns; the fallback only fills empty cells. The column names
 
 ## Tests
 
-The tests in `src/test/test_all.py` are **integration** tests: they exercise the
-real Grist API (extraction, fetch, add, and the redirect check) against the
-`Test` table, so they need the Grist secrets and network access. The redirect
-check has a convenience entry point:
+Automated tests live in `src/test/` and run with **pytest**:
+
+| File | What it covers | Needs |
+| --- | --- | --- |
+| `test_complete_veille.py` | Unit tests for the completion logic — duplicate handling, link resolution, category (`["L", …]`) encoding, the unreachable-link fallback and the formula-column pre-flight. Network and LLM are mocked. | nothing |
+| `test_realdata.py` | Integration tests against the live Grist `Test` table: read-only invariant checks, plus one write round-trip that PATCHes a sentinel into a row's `Traitement` and restores it. | Grist secrets + network |
 
 ```bash
-uv run test.py                 # runs the Grist POST-redirect check
+uv run pytest                              # the whole suite
+uv run pytest src/test/test_realdata.py    # a single file
+uv run src/test/test_realdata.py           # a single file, run directly
+```
+
+`test_realdata.py` skips automatically when no Grist credentials are present, so
+the suite stays green without secrets. The path setup (repo root on `sys.path`)
+and the exclusion of the manual `test_all.py` below are configured in
+`pyproject.toml` under `[tool.pytest.ini_options]`.
+
+`src/test/test_all.py` is a separate **manual** smoke script that writes to the
+live Grist `Test` table; it is deliberately kept out of the automated pytest run.
+Use it directly:
+
+```bash
+uv run test.py                 # the Grist POST-redirect check (see Troubleshooting)
 bash src/test/test_grist.sh    # same check, via curl
 ```
 
