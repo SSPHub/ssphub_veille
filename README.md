@@ -217,7 +217,8 @@ live Grist `Test` table; it is deliberately kept out of the automated pytest run
 Use it directly:
 
 ```bash
-uv run test.py                 # the Grist POST-redirect check (see Troubleshooting)
+# the Grist POST-redirect check (see Troubleshooting)
+uv run python -c "from src.test.test_all import test_redirect_post; test_redirect_post()"
 bash src/test/test_grist.sh    # same check, via curl
 ```
 
@@ -225,8 +226,13 @@ bash src/test/test_grist.sh    # same check, via curl
 
 **Records are not written / the API silently does a GET.** Some Grist setups
 answer an API write with a `302` redirect that turns the `POST` into a `GET`,
-dropping the body. Diagnose it with `uv run test.py`. A healthy result shows two
-`200` responses:
+dropping the body. Diagnose it by running the redirect check from `test_all.py`:
+
+```bash
+uv run python -c "from src.test.test_all import test_redirect_post; test_redirect_post()"
+```
+
+A healthy result shows two `200` responses:
 
 ```text
 Test with allow_redirects=True
@@ -244,7 +250,6 @@ If the second response is `<Response [302]>`, the redirect problem is present.
 ```text
 ssphub_veille/
 ├── veille.py                        # CLI entry point: `extract`, `complete`, `extract-and-complete`
-├── test.py                          # runs the Grist POST-redirect check (see Troubleshooting)
 ├── pyproject.toml                   # project metadata, dependencies, pytest config
 ├── uv.lock                          # locked dependency versions (uv)
 ├── .python-version                  # pinned Python version
@@ -263,7 +268,7 @@ ssphub_veille/
 │   └── test/                        # tests
 │       ├── test_complete_veille.py  # pytest unit tests for completion (mocked, no creds)
 │       ├── test_realdata.py         # pytest integration tests on the live Grist Test table
-│       ├── test_all.py              # manual smoke scripts hitting live Grist (run via test.py)
+│       ├── test_all.py              # manual Grist smoke checks (e.g. test_redirect_post)
 │       └── test_grist.sh            # curl version of the redirect check
 └── docs/                            # setup screenshots + call graph
     ├── graphs.sh                    # regenerate the call graph (code2flow)

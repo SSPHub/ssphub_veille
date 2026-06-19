@@ -19,6 +19,7 @@ dependencies = [
 # imports like `import src.data.complete_veille` when run via `uv run pytest`.
 pythonpath = ["."]
 testpaths = ["src/test"]
-# test_all.py is a manual smoke script that writes to the live Grist Test table
-# (run it via `python test.py`); keep it out of the automated pytest run.
+# test_all.py holds manual smoke checks that write to the live Grist Test table
+# (run e.g. `python -c "from src.test.test_all import test_redirect_post; test_redirect_post()"`);
+# keep it out of the automated pytest run.
 addopts = "--ignore=src/test/test_all.py"
