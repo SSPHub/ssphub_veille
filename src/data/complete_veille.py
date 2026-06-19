@@ -301,7 +301,7 @@ def _build_analysis_messages(
             "Par exemple, ne dit pas 'estimation du bénéfice économique lié au "
             "maintien de l'intégrité des données officielles' mais plutot"
             " benefice économique lié au maintien de l'intégrité des données officielles "
-            "estimé à 25$ par $ investi"
+            "estimé à 25$ par $ investi. Enfin et surtout n'invente rien. "
         )
         content_label = "Contenu de l'article :"
     else:
@@ -320,11 +320,11 @@ def _build_analysis_messages(
         resume_instr = (
             '- "resume": uniquement si le texte fournit assez d\'information, un resume '
             "tres concis en francais (style telegraphique, 2-3 phrases). Sinon, laisse "
-            "une chaine vide. N'invente rien. Donne le résultat de l'analyse s'il existe."
+            "une chaine vide. Donne le résultat de l'analyse s'il existe."
             "Par exemple, ne dit pas 'estimation du bénéfice économique lié au "
             "maintien de l'intégrité des données officielles' mais plutot"
             " benefice économique lié au maintien de l'intégrité des données officielles "
-            "estimé à 25$ par $ investi"
+            "estimé à 25$ par $ investi. Enfin et surtout n'invente rien. "
         )
         content_label = "Titre et resume existants (la page est inaccessible) :"
 
