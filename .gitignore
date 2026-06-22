@@ -13,7 +13,7 @@ __pycache__/
 
 # Docs
 *.gv
-"veille.qmd"
+veille.qmd
 
 # Distribution / packaging
 .Python
