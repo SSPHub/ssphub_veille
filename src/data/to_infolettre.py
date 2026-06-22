@@ -10,8 +10,7 @@ from src.utils.access_grist_api import GristApi
 from src.utils.logging import setup_logging
 from src.data.complete_veille import normalise_categories
 
-CATEGORY_DF = "Rubriques"
-
+RUBRIQUES_TABLE = "Rubriques"
 
 def extract_rows_qmd(
     input_table="Veille",
@@ -112,8 +111,8 @@ def fetch_categories(logger=setup_logging()):
     Args : 
 
     """
-    logger.info(f"Récupération des catégories de la table {CATEGORY_DF}")
-    rubriques_df = GristApi().fetch_table_pl(table_id=CATEGORY_DF)
+    logger.info(f"Récupération des catégories de la table {RUBRIQUES_TABLE}")
+    rubriques_df = GristApi().fetch_table_pl(table_id=RUBRIQUES_TABLE)
 
     logger.info("Transformation en dictionnaire de catégories")
     category_groups = dict(
