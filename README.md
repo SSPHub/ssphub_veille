@@ -165,19 +165,24 @@ uv run veille.py complete -t Veille                   # then the rest
 3. The LLM is asked, in a single call, to return JSON with:
    - `titre` — the article/blog/paper title (or a short invented one, ≤ 10 words);
    - `resume` — a concise, telegraphic summary in French (2–3 sentences max);
-   - `categories` — chosen **from the categories already used in the table**,
-     guided by example assignments taken from already-categorised rows. It must
-     not duplicate a similar existing category, and answers `["??"]` when unsure
-     rather than guessing.
-4. Results are written to `Titre_article`, `Resume`, `Categorie` (encoded as
-   Grist's `["L", …]` choice list), and `Traitement` is timestamped — so a row is
-   processed once and skipped on the next run. To redo a row, clear its
-   `Traitement` cell.
+   - `categories` — one to four categories chosen **only from the `Rubriques`
+     table** (the closed list of categories), guided by example assignments taken
+     from already-categorised rows. It answers `["??"]` when unsure rather than
+     guessing, and never invents a category.
+4. Results are written to `Titre_article`, `Resume`, `Categorie`, and
+   `Traitement` is timestamped (Europe/Paris) — so a row is processed once and
+   skipped on the next run. To redo a row, clear its `Traitement` cell.
+
+`Categorie` is a **Reference List** into the `Rubriques` table: the cell stores
+Rubriques row ids, not labels. The tool reads `Rubriques` to translate ids into
+real category names for the LLM, and translates the LLM's chosen names back into
+row ids when writing (names absent from `Rubriques` are dropped). The `Rubriques`
+table has a `Category` column (the label) and a `Rubrique` column (its grouping).
 
 When a page is fetched successfully the LLM results **overwrite** the three
-columns; the fallback only fills empty cells. The column names
+columns; the fallback only fills empty cells. The column/table names
 (`Lien_article`, `Resume`, `Titre_article`, `Categorie`, `Doublon_lien`,
-`Traitement`) are defined as constants at the top of
+`Traitement`, `Rubriques`) are defined as constants at the top of
 `src/data/complete_veille.py`.
 
 > **One-time Grist check.** `Traitement` must be a **data** column (type Text),
@@ -191,8 +196,9 @@ columns; the fallback only fills empty cells. The column names
   reddit, LinkedIn, YouTube, some news sites) fail the link check. Such rows
   fall back to their existing text for categorisation, or end up as
   `NO WORKING LINK FOUND` if they have no text.
-- The category vocabulary is read from the table itself, so it grows and cleans
-  up as you curate the table. `??` is the reserved "unknown / unsure" category.
+- The category vocabulary is the `Category` column of the `Rubriques` table.
+  `??` is the reserved "unknown / unsure" category — add it as a row in
+  `Rubriques` if you want the tool to be able to assign it.
 
 ## Tests
 
@@ -200,7 +206,7 @@ Automated tests live in `src/test/` and run with **pytest**:
 
 | File | What it covers | Needs |
 | --- | --- | --- |
-| `test_complete_veille.py` | Unit tests for the completion logic — duplicate handling, link resolution, category (`["L", …]`) encoding, the unreachable-link fallback and the formula-column pre-flight. Network and LLM are mocked. | nothing |
+| `test_complete_veille.py` | Unit tests for the completion logic — duplicate handling, link resolution, Rubriques reference encoding (ids ↔ names), the unreachable-link fallback and the formula-column pre-flight. Network and LLM are mocked. | nothing |
 | `test_realdata.py` | Integration tests against the live Grist `Test` table: read-only invariant checks, plus one write round-trip that PATCHes a sentinel into a row's `Traitement` and restores it. | Grist secrets + network |
 
 ```bash
