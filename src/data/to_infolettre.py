@@ -10,6 +10,8 @@ from src.utils.access_grist_api import GristApi
 from src.utils.logging import setup_logging
 from src.data.complete_veille import normalise_categories
 
+CATEGORY_DF = "Rubriques"
+
 
 def extract_rows_qmd(
     input_table="Veille",
@@ -91,14 +93,9 @@ def create_veille_qmd(
 
     # Process each category group
     for group, keywords in category_groups.items():
-        # Filter rows where 'Categorie' contains any of the keywords
-        filtered_df = veille_df.filter(
-            pl.any_horizontal(*[pl.col('Categorie').list.contains(keyword) for keyword in keywords])
-        )
-
-        if filtered_df.height > 0:
+        if veille_df.height > 0:
             markdown_content += f"## {group} :\n"
-            for row in filtered_df.iter_rows(named=True):
+            for row in veille_df.iter_rows(named=True):
                 titre = row['Titre_article']
                 lien = row['Lien_article']
                 resume = row['Resume']
@@ -119,10 +116,8 @@ def fetch_categories(logger=setup_logging()):
     Args : 
 
     """
-    target_name = "Rubriques"
-
-    logger.info(f"Récupération des catégories de la table {target_name}")
-    rubriques_df = GristApi().fetch_table_pl(table_id=target_name)
+    logger.info(f"Récupération des catégories de la table {CATEGORY_DF}")
+    rubriques_df = GristApi().fetch_table_pl(table_id=CATEGORY_DF)
 
     logger.info("Transformation en dictionnaire de catégories")
     category_groups = dict(
