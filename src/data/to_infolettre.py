@@ -84,37 +84,7 @@ def create_veille_qmd(
     >>> create_veille_qmd(veille_df)
     """
     # Define category mappings
-    category_groups = {
-        'IA': [
-            'IA',
-            'bulle',
-            'RAG',
-            'LLM',
-            'IA agent',
-            'Embedding',
-            'MCP',
-            'entrainement',
-            'classification',
-            'dangerIA',
-            'Anthropic',
-            'NLP/texte'
-        ],
-        'Ressources': [
-            'Python',
-            'Parquet',
-            'techos',
-            'tools',
-            'R',
-            'package',
-            'SQL',
-            'RShiny',
-            'Quarto'
-            ],
-        'Fun': [
-            'fun', 
-            'formation'
-            ]
-    }
+    category_groups = fetch_categories(logger=logger)
 
     # Initialize markdown content
     markdown_content = ""
@@ -140,6 +110,29 @@ def create_veille_qmd(
         f.write(markdown_content)
 
     return markdown_content
+
+
+def fetch_categories(logger=setup_logging()):
+    """
+    To fetch categories from the Rubrique table and send it back as a dictionnary 'Rubrique' : [list of categories]
+
+    Args : 
+
+    """
+    target_name = "Rubriques"
+
+    logger.info(f"Récupération des catégories de la table {target_name}")
+    rubriques_df = GristApi().fetch_table_pl(table_id=target_name)
+
+    logger.info("Transformation en dictionnaire de catégories")
+    category_groups = dict(
+        rubriques_df
+        .group_by("Rubrique")
+        .agg(pl.col("Categories"))
+        .iter_rows()
+    )
+
+    return category_groups
 
 
 extract_rows_qmd()
