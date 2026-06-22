@@ -8,10 +8,15 @@ processed), the pipeline:
   2. Finds a working link: tries `Lien_article` first, then the links found in
      `Resume`; if none responds, writes "NO WORKING LINK FOUND".
   3. Calls the LLM to (a) extract / craft a title, (b) write a 2-3 sentence
-     telegraphic summary, (c) pick a category from the existing vocabulary,
-     guided by example assignments taken from already-categorised rows.
+     telegraphic summary, (c) pick categories from the `Rubriques` table (the
+     closed category list), guided by example assignments taken from
+     already-categorised rows.
   4. Stores the results in a dict keyed by Grist column names and PATCHes the
      row, stamping `Traitement` with a timestamp.
+
+The `Categorie` column is a Reference List into the `Rubriques` table, so the
+stored values are Rubriques row ids: the code translates them to names for the
+LLM and translates the LLM's answers back into row ids before writing.
 
 The LLM tasks (a/b/c) are issued as a single structured JSON call per row: the
 article text only has to travel once and it is cheaper than three round-trips.
@@ -39,6 +44,12 @@ COL_TITLE = "Titre_article"
 COL_CATEGORY = "Categorie"
 COL_DUPLICATE = "Doublon_lien"
 COL_PROCESS = "Traitement"
+
+# The Categorie column is a Reference List into the `Rubriques` table: the cell
+# holds Rubriques row ids (e.g. ["L", 1, 2]), not category names. The category
+# label lives in the Rubriques "Category" column.
+RUBRIQUES_TABLE = "Rubriques"
+COL_RUBRIQUE_CATEGORY = "Categories"
 
 REQUEST_TIMEOUT = 15  # seconds, when checking/fetching a link
 MAX_ARTICLE_CHARS = 8000  # how much article text we feed the LLM
@@ -141,15 +152,22 @@ def candidate_links(row: dict) -> list[str]:
     return links
 
 
-def normalise_categories(value) -> list[str]:
+def normalise_categories(value, id_to_name=None) -> list[str]:
     """
-    Turn a Grist category cell into a clean list of category strings.
+    Turn a Grist `Categorie` cell into a clean list of category *names*.
 
-    Grist encodes a ChoiceList as ['L', 'cat1', 'cat2']; a single value may also
-    come back as a bare string. Empty / None -> [].
+    The cell is a Reference List, encoded as ['L', id1, id2, ...] where the ids
+    are rows of the `Rubriques` table. Pass `id_to_name` (a {row_id: name} map,
+    see `build_category_ref_maps`) to translate those ids into category names;
+    unknown ids are dropped.
+
+    Without `id_to_name` the elements are returned as-is (handles a plain string
+    cell, or a legacy ChoiceList of literal names).
 
     >>> normalise_categories(['L', 'IA', 'Stat publique'])
     ['IA', 'Stat publique']
+    >>> normalise_categories(['L', '1', 2], {1: 'IA', 2: 'fun'})
+    ['IA', 'fun']
     >>> normalise_categories('IA')
     ['IA']
     >>> normalise_categories(None)
@@ -161,41 +179,84 @@ def normalise_categories(value) -> list[str]:
         items = list(value)
         if items and items[0] == "L":  # drop Grist's list marker
             items = items[1:]
+    else:
+        text = str(value).strip()
+        items = [text] if text else []
+
+    if id_to_name is None:
         return [str(c).strip() for c in items if str(c).strip()]
-    text = str(value).strip()
-    return [text] if text else []
+
+    names = []
+    for item in items:  # item is a Rubriques row id (int or stringified int)
+        key = item
+        try:
+            key = int(item)
+        except (TypeError, ValueError):
+            pass
+        name = id_to_name.get(key, id_to_name.get(str(item)))
+        if name:
+            names.append(name)
+    return names
 
 
-def to_grist_list(categories: list[str]) -> list[str]:
+def build_category_ref_maps(rubriques_rows: list[dict]) -> tuple[dict, dict]:
     """
-    Encode a python list of categories the way Grist expects a ChoiceList:
-    a list whose first element is the marker 'L'.
-
-    >>> to_grist_list(['IA', 'Stat'])
-    ['L', 'IA', 'Stat']
+    From the rows of the `Rubriques` table, build the two lookups we need:
+      - id_to_name: {Rubriques row id -> category name}   (for reading -> LLM)
+      - name_to_id: {category name -> Rubriques row id}    (for writing back)
     """
-    return ["L", *categories]
+    id_to_name, name_to_id = {}, {}
+    for row in rubriques_rows:
+        rid = row.get("id")
+        name = clean_text(row.get(COL_RUBRIQUE_CATEGORY))
+        if rid is not None and name:
+            id_to_name[rid] = name
+            name_to_id.setdefault(name, rid)
+    return id_to_name, name_to_id
 
 
-def category_vocabulary(rows: list[dict]) -> list[str]:
-    """Every distinct category already used in the table, order preserved."""
+def category_vocabulary(id_to_name: dict) -> list[str]:
+    """The list of available category names (the closed vocabulary), de-duplicated."""
     vocab, seen = [], set()
-    for row in rows:
-        for cat in normalise_categories(row.get(COL_CATEGORY)):
-            if cat not in seen:
-                seen.add(cat)
-                vocab.append(cat)
+    for name in id_to_name.values():
+        if name not in seen:
+            seen.add(name)
+            vocab.append(name)
     return vocab
 
 
-def build_category_examples(rows: list[dict], n: int = DEFAULT_N_EXAMPLES) -> list[dict]:
+def to_grist_ref_list(names: list[str], name_to_id: dict, logger=None) -> list | None:
+    """
+    Encode category names as a Grist Reference List: ['L', id1, id2, ...] with
+    the Rubriques row ids. Names absent from `Rubriques` cannot be referenced and
+    are dropped (with a log line). Returns None if nothing maps.
+
+    >>> to_grist_ref_list(['IA', 'fun'], {'IA': 1, 'fun': 2})
+    ['L', 1, 2]
+    >>> to_grist_ref_list(['inconnue'], {'IA': 1})
+    """
+    ids = []
+    for name in names:
+        rid = name_to_id.get(name)
+        if rid is None:
+            if logger is not None:
+                logger.info(f"categorie absente de Rubriques, ignoree : {name!r}")
+            continue
+        ids.append(rid)
+    return ["L", *ids] if ids else None
+
+
+def build_category_examples(
+    rows: list[dict], id_to_name=None, n: int = DEFAULT_N_EXAMPLES
+) -> list[dict]:
     """
     Up to `n` example assignments drawn from rows that already have a category,
     used as few-shot guidance: {"contenu": <title or summary>, "categorie": [...]}.
+    Category ids are translated to names via `id_to_name`.
     """
     examples = []
     for row in rows:
-        cats = normalise_categories(row.get(COL_CATEGORY))
+        cats = normalise_categories(row.get(COL_CATEGORY), id_to_name)
         if not cats:
             continue
         content = clean_text(row.get(COL_TITLE)) or clean_text(row.get(COL_RESUME))
@@ -276,16 +337,15 @@ def _build_analysis_messages(
         or "(aucun exemple disponible)"
     )
 
-    # Category instruction is the same in both modes.
+    # Category instruction is the same in both modes. Categories are a closed
+    # list (the Rubriques table), so the model must pick from it, not invent.
     cat_instr = (
-        '- "categories": une liste d\'une ou plusieurs categories en francais. '
-        "Choisis en priorite PARMI les categories existantes listees ci-dessous, "
-        "et ne cree pas de doublon d'une categorie deja existante (meme proche). "
-        "Tu peux ajouter une nouvelle categorie courte uniquement si un theme "
-        "clairement distinct n'est couvert par aucune categorie existante. "
-        'IMPORTANT : si tu n\'es pas sur de la categorie, reponds exactement ["??"] '
-        "(c'est la categorie reservee a l'incertitude) ; ne devine pas."
-        "Ne donne pas plus de 4 catgégories à un article."
+        '- "categories": une à quatre categories en francais, choisies '
+        "EXCLUSIVEMENT dans la liste des categories existantes ci-dessous "
+        "(ne cree aucune nouvelle categorie, evite les doublons proches). "
+        'IMPORTANT : si tu n\'es pas sur, ou si aucune categorie ne convient, '
+        'reponds exactement ["??"] (categorie reservee a l\'incertitude) ; '
+        "ne devine pas. Ne donne pas plus de 4 catgégories à un article."
         " Les catégories sont en français ('education' est formation par exemple)"
     )
 
@@ -298,11 +358,7 @@ def _build_analysis_messages(
         )
         resume_instr = (
             '- "resume": un resume tres concis, en francais, style telegraphique, '
-            "2 a 3 phrases maximum. Donne le résultat de l'analyse s'il existe."
-            "Par exemple, ne dit pas 'estimation du bénéfice économique lié au "
-            "maintien de l'intégrité des données officielles' mais plutot"
-            " benefice économique lié au maintien de l'intégrité des données officielles "
-            "estimé à 25$ par $ investi. Enfin et surtout n'invente rien. "
+            "2 a 3 phrases maximum."
         )
         content_label = "Contenu de l'article :"
     else:
@@ -389,11 +445,16 @@ def fallback_text(row: dict) -> str:
     return "\n".join(p for p in parts if p)
 
 
-def process_row(row: dict, vocabulary, examples, logger) -> dict:
+def process_row(row: dict, vocabulary, examples, logger, id_to_name=None, name_to_id=None) -> dict:
     """
     Compute the {column_name: new_value} dict to PATCH for a single row.
     Never raises on expected conditions; the `Traitement` column always reflects
     what happened.
+
+    `id_to_name` / `name_to_id` are the Rubriques lookups (see
+    `build_category_ref_maps`): the first translates the row's stored category
+    ids to names, the second turns the LLM's chosen names back into Rubriques row
+    ids for the Reference List write.
 
     Link handling:
       - if a link works, the article page is analysed and the LLM results are
@@ -418,7 +479,7 @@ def process_row(row: dict, vocabulary, examples, logger) -> dict:
 
     has_title = bool(clean_text(row.get(COL_TITLE)))
     has_resume = bool(clean_text(row.get(COL_RESUME)))
-    has_cat = bool(normalise_categories(row.get(COL_CATEGORY)))
+    has_cat = bool(normalise_categories(row.get(COL_CATEGORY), id_to_name))
 
     # 2. Find a working link.
     url, html = resolve_working_link(row, logger)
@@ -456,7 +517,13 @@ def process_row(row: dict, vocabulary, examples, logger) -> dict:
     if analysis["resume"] and not (gap_only and has_resume):
         fields[COL_RESUME] = analysis["resume"]
     if analysis["categories"] and not (gap_only and has_cat):
-        fields[COL_CATEGORY] = to_grist_list(analysis["categories"])
+        # Categorie is a Reference List -> write Rubriques row ids, not names.
+        if name_to_id is not None:
+            ref = to_grist_ref_list(analysis["categories"], name_to_id, logger)
+            if ref is not None:
+                fields[COL_CATEGORY] = ref
+        else:
+            fields[COL_CATEGORY] = ["L", *analysis["categories"]]
     return fields
 
 
@@ -537,10 +604,22 @@ def complete_veille(
     rows = df.to_dicts()
     logger.info(f"{len(rows)} lignes recuperees")
 
-    vocabulary = category_vocabulary(rows)
-    examples = build_category_examples(rows, n=n_examples)
+    # The Categorie column references the Rubriques table; load it so we can show
+    # the LLM real category names and write its answers back as Rubriques ids.
+    try:
+        rubriques_rows = api.fetch_table_pl(RUBRIQUES_TABLE).to_dicts()
+    except Exception as exc:
+        logger.warning(
+            f"Impossible de charger la table '{RUBRIQUES_TABLE}' ({exc}); "
+            "les categories ne pourront pas etre traitees."
+        )
+        rubriques_rows = []
+    id_to_name, name_to_id = build_category_ref_maps(rubriques_rows)
+    vocabulary = category_vocabulary(id_to_name)
+    examples = build_category_examples(rows, id_to_name, n=n_examples)
     logger.info(
-        f"{len(vocabulary)} categories existantes, {len(examples)} exemples d'affectation"
+        f"{len(vocabulary)} categories dans '{RUBRIQUES_TABLE}', "
+        f"{len(examples)} exemples d'affectation"
     )
 
     targets = select_rows(rows)  # rows whose Traitement is empty
@@ -551,7 +630,9 @@ def complete_veille(
     updates = []
     for row in targets:
         try:
-            fields = process_row(row, vocabulary, examples, logger)
+            fields = process_row(
+                row, vocabulary, examples, logger, id_to_name, name_to_id
+            )
         except Exception as exc:  # never let one row kill the batch
             logger.error(f"[id {row.get('id')}] erreur inattendue : {exc}")
             fields = {COL_PROCESS: f"ERREUR : {exc} - {now_stamp()}"}
