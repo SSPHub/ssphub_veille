@@ -112,8 +112,13 @@ def create_veille_qmd(
     # Initialize markdown content
     markdown_content = ""
     added_rows_ids = []
-    # Process each category group
-    for group, keywords in rubriques_groups.items():
+
+    # Fetch rubrique order (tag 1 prevails over tag in 2 ...)
+    groups_ordered = GristApi().fetch_table_pl(table_id=TABLE_RUBRIQUES).unique("Rubrique").select(["Rubrique", "Ordre"]).sort("Ordre")["Rubrique"].to_list()
+
+    # Process each category group in the right order
+    for group in groups_ordered:
+        keywords = rubriques_groups[group]
         filtered_df = (
             veille_df
             .remove(pl.col("id").is_in(added_rows_ids))
