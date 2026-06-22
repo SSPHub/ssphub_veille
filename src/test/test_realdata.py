@@ -61,9 +61,9 @@ def rows():
 def ref_maps():
     """Fetch the Rubriques table and build the id<->name category lookups."""
     try:
-        rubriques = cv.GristApi().fetch_table_pl(cv.RUBRIQUES_TABLE).to_dicts()
+        rubriques = cv.GristApi().fetch_table_pl(cv.TABLE_RUBRIQUES).to_dicts()
     except Exception as exc:
-        pytest.skip(f"could not fetch the '{cv.RUBRIQUES_TABLE}' table from Grist: {exc}")
+        pytest.skip(f"could not fetch the '{cv.TABLE_RUBRIQUES}' table from Grist: {exc}")
     return cv.build_category_ref_maps(rubriques)  # (id_to_name, name_to_id)
 
 
