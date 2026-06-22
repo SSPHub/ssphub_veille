@@ -163,4 +163,4 @@ def fetch_rubriques(logger=setup_logging()):
     return rubriques_groups
 
 
-extract_rows_qmd()
+
