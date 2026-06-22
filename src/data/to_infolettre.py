@@ -8,9 +8,11 @@ import polars as pl
 
 from src.utils.access_grist_api import GristApi
 from src.utils.logging import setup_logging
-from src.data.complete_veille import normalise_categories
+from src.data.complete_veille import build_category_ref_maps
 
-RUBRIQUES_TABLE = "Rubriques"
+TABLE_RUBRIQUES = "Rubriques"
+COL_CATEGORY = "Categorie"
+
 
 def extract_rows_qmd(
     input_table="Veille",
@@ -31,10 +33,12 @@ def extract_rows_qmd(
     Example:
     >>> extract_rows_qmd()
     """
+    api = GristApi()
+
     # Download data to filter urls
     logger.info(f"Début du téléchargement de la table Grist cible {input_table}")
     veille_df = (
-        GristApi().fetch_table_pl(table_id=input_table)
+        api.fetch_table_pl(table_id=input_table)
     )
     logger.info(
         f"Table Grist cible {input_table} téléchargée, nombre de lignes : {len(veille_df)}"
@@ -42,10 +46,32 @@ def extract_rows_qmd(
 
     # Filter new articles in former Grist table
     logger.info("Filtrer les lignes à insérer dans la veille")
-    veille_df = veille_df.filter(
-       pl.col("A_garder"), pl.col("Lien_veille") == ""
+    veille_df = (
+        veille_df
+        .filter(
+            pl.col("A_garder"), pl.col("Lien_veille") == ""
+        )
     )
     logger.info(f"Nombre de lignes à garder sans veille renseignée: {len(veille_df)}")
+
+    # Update categories with labels and not ids
+    logger.info("Remplacement des catégories")
+    rubriques_rows = api.fetch_table_pl(TABLE_RUBRIQUES).to_dicts()
+    id_to_name, _ = build_category_ref_maps(rubriques_rows)
+    veille_df = (
+        veille_df
+        .explode(COL_CATEGORY)
+        .filter(
+            pl.col(COL_CATEGORY) != "L"
+        )  # droping "L"
+        .with_columns(pl.col(COL_CATEGORY).replace(id_to_name))  # renaming
+        .sort(by=pl.col(COL_CATEGORY).str.to_lowercase())
+        .group_by("id")
+        .agg(pl.col(COL_CATEGORY))
+        .join(veille_df.drop(COL_CATEGORY), how="right", on="id", maintain_order="right")
+    )
+
+    logger.info("Remplacement des catégories effectué")
 
     return create_veille_qmd(veille_df, output_path, logger)
 
@@ -85,18 +111,20 @@ def create_veille_qmd(
 
     # Initialize markdown content
     markdown_content = ""
-
+    added_rows_ids = []
     # Process each category group
     for group, keywords in category_groups.items():
+
         if veille_df.height > 0:
             markdown_content += f"## {group} :\n"
             for row in veille_df.iter_rows(named=True):
-                titre = row['Titre_article']
-                lien = row['Lien_article']
-                resume = row['Resume']
-                categories = ", ".join(normalise_categories(row['Categorie']))
-                markdown_content += f"- [{titre}]({lien}): {resume}\nCatégories : {categories}\n\n"
-
+                if row["id"] not in added_rows_ids:
+                    titre = row['Titre_article']
+                    lien = row['Lien_article']
+                    resume = row['Resume']
+                    categories = ", ".join(row['Categorie'])
+                    markdown_content += f"- [{titre}]({lien}): {resume}\nCatégories : {categories}\n\n"
+                    added_rows_ids = added_rows_ids.append(row['id'])
     # Save to file
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(markdown_content)
@@ -111,8 +139,8 @@ def fetch_categories(logger=setup_logging()):
     Args : 
 
     """
-    logger.info(f"Récupération des catégories de la table {RUBRIQUES_TABLE}")
-    rubriques_df = GristApi().fetch_table_pl(table_id=RUBRIQUES_TABLE)
+    logger.info(f"Récupération des catégories de la table {TABLE_RUBRIQUES}")
+    rubriques_df = GristApi().fetch_table_pl(table_id=TABLE_RUBRIQUES)
 
     logger.info("Transformation en dictionnaire de catégories")
     category_groups = dict(
