@@ -42,8 +42,10 @@ def sample_rows():
 
 
 @pytest.fixture
-def vocab(sample_rows):
-    return cv.category_vocabulary(sample_rows)
+def vocab():
+    # The closed category vocabulary (content is irrelevant to the mocked
+    # process_row tests, which stub out the LLM).
+    return ["IA", "Stat publique", "Cartographie", "fun"]
 
 
 @pytest.fixture
@@ -76,10 +78,33 @@ def test_parse_json_answer(raw, expected):
 
 
 # --------------------------------------------------------------------------- #
-# Category vocabulary + few-shot examples
+# Categories as a Reference List into the Rubriques table
 # --------------------------------------------------------------------------- #
-def test_category_vocabulary(vocab):
-    assert vocab == ["IA", "Stat publique", "Cartographie"]
+def test_build_category_ref_maps_and_vocabulary():
+    rubriques = [
+        {"id": 1, "Category": "IA", "Rubrique": "Tech"},
+        {"id": 2, "Category": "Stat publique", "Rubrique": "Metier"},
+        {"id": 3, "Category": "fun", "Rubrique": "Divers"},
+    ]
+    id_to_name, name_to_id = cv.build_category_ref_maps(rubriques)
+    assert id_to_name == {1: "IA", 2: "Stat publique", 3: "fun"}
+    assert name_to_id == {"IA": 1, "Stat publique": 2, "fun": 3}
+    assert cv.category_vocabulary(id_to_name) == ["IA", "Stat publique", "fun"]
+
+
+def test_normalise_categories_translates_ref_ids():
+    id_to_name = {1: "IA", 2: "fun"}
+    # the API returns Rubriques row ids (the fetch often stringifies them)
+    assert cv.normalise_categories(["L", "1", 2], id_to_name) == ["IA", "fun"]
+    assert cv.normalise_categories(["L", 99], id_to_name) == []  # unknown id dropped
+    # without a map, elements are treated as names (legacy / no Rubriques)
+    assert cv.normalise_categories(["L", "IA"]) == ["IA"]
+
+
+def test_to_grist_ref_list_maps_names_to_ids():
+    name_to_id = {"IA": 1, "fun": 2}
+    assert cv.to_grist_ref_list(["IA", "fun"], name_to_id) == ["L", 1, 2]
+    assert cv.to_grist_ref_list(["inconnue"], name_to_id) is None  # unmapped -> None
 
 
 def test_build_category_examples(examples):
@@ -146,9 +171,35 @@ def test_process_row_happy_path(vocab, examples):
         )
     assert fields["Titre_article"] == "Un titre extrait"
     assert fields["Resume"] == "Resume telegraphique. Deux phrases."
-    assert fields["Categorie"] == ["L", "IA"]  # Grist choice-list encoding
+    assert fields["Categorie"] == ["L", "IA"]  # no ref map passed -> names kept
     assert fields["Traitement"].startswith("Traite le")
     assert cv.COL_LINK not in fields  # original link worked -> not rewritten
+
+
+def test_process_row_writes_category_as_rubriques_refs(vocab, examples):
+    # With a name->id map, the category is written as Rubriques row ids, not names.
+    fake_llm = {"titre": "T", "resume": "R", "categories": ["IA", "fun"]}
+    id_to_name = {1: "IA", 2: "fun"}
+    name_to_id = {"IA": 1, "fun": 2}
+    with mock.patch.object(cv, "fetch_if_working", return_value=FAKE_HTML), \
+         mock.patch.object(cv, "ask_json", return_value=fake_llm):
+        fields = cv.process_row(
+            {"id": 31, "Doublon_lien": 1, "Lien_article": "https://live.fr", "Resume": ""},
+            vocab, examples, mock.Mock(), id_to_name=id_to_name, name_to_id=name_to_id,
+        )
+    assert fields[cv.COL_CATEGORY] == ["L", 1, 2]  # Rubriques ids, not names
+
+
+def test_process_row_drops_category_absent_from_rubriques(vocab, examples):
+    # A category the LLM returns that isn't in Rubriques can't be referenced.
+    fake_llm = {"titre": "T", "resume": "R", "categories": ["inconnue"]}
+    with mock.patch.object(cv, "fetch_if_working", return_value=FAKE_HTML), \
+         mock.patch.object(cv, "ask_json", return_value=fake_llm):
+        fields = cv.process_row(
+            {"id": 32, "Doublon_lien": 1, "Lien_article": "https://live.fr", "Resume": ""},
+            vocab, examples, mock.Mock(), id_to_name={1: "IA"}, name_to_id={"IA": 1},
+        )
+    assert cv.COL_CATEGORY not in fields  # nothing writable -> column left untouched
 
 
 def test_process_row_keeps_lien_article_when_original_works(vocab, examples):
