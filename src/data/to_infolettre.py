@@ -127,7 +127,7 @@ def create_veille_qmd(
         )
 
         if filtered_df.height > 0:
-            markdown_content += f"{group} :\n"
+            markdown_content += f"## {group} :\n"
             for row in filtered_df.iter_rows(named=True):
                 titre = row['Titre_article']
                 lien = row['Lien_article']
