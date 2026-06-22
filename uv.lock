@@ -557,6 +557,7 @@ dependencies = [
     { name = "polars" },
     { name = "pytest" },
     { name = "requests" },
+    { name = "tzdata" },
 ]
 
 [package.metadata]
@@ -568,6 +569,7 @@ requires-dist = [
     { name = "polars", specifier = ">=1.35.2" },
     { name = "pytest", specifier = ">=9.0.1" },
     { name = "requests", specifier = ">=2.32.5" },
+    { name = "tzdata", specifier = ">=2024.1" },
 ]
 
 [[package]]
