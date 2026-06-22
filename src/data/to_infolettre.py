@@ -58,25 +58,21 @@ def create_veille_qmd(
 ):
     """
     Summarise all the rows of a Polars dataframe to the following format: 
-    IA : [if the list of category contains one of the following tags : IA, LLM]
+    ## IA : [tags according to Rubriques table]
     - [Titre_article](lien_article): Resume
-    categories
-    - [Titre_article](lien_article): Resume
-    categories
+    Catégories: categories
 
-    Ressources : [if the list of category contains one of the following tags : tools]
+    ## Ressources : [tags according to Rubriques table]
     - [Titre_article](lien_article): Resume
-    categories
-    - [Titre_article](lien_article): Resume
-    categories
+    Catégories: categories
 
-    Fun: [if the list of category contains one of the following tags : fun, formation]
+    ## Fun: [tags according to Rubriques table]
     - [Titre_article](lien_article): Resume
-    categories
+    Catégories: categories
 
     Args:
         veille_df : the Polars dataframe (filter) whose rows will be summarised
-        output_path (string) : path of the Qmd file to store the results 
+        output_path (string) : path of the Qmd file to store the results
         logger
 
     Returns:
