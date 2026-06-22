@@ -107,24 +107,29 @@ def create_veille_qmd(
     >>> create_veille_qmd(veille_df)
     """
     # Define category mappings
-    category_groups = fetch_categories(logger=logger)
+    rubriques_groups = fetch_rubriques(logger=logger)
 
     # Initialize markdown content
     markdown_content = ""
     added_rows_ids = []
     # Process each category group
-    for group, keywords in category_groups.items():
-
-        if veille_df.height > 0:
+    for group, keywords in rubriques_groups.items():
+        filtered_df = (
+            veille_df
+            .remove(pl.col("id").is_in(added_rows_ids))
+            .filter(
+                pl.any_horizontal(*[pl.col('Categorie').list.contains(keyword) for keyword in keywords])
+            )
+        )
+        if filtered_df.height > 0:
             markdown_content += f"## {group} :\n"
-            for row in veille_df.iter_rows(named=True):
-                if row["id"] not in added_rows_ids:
-                    titre = row['Titre_article']
-                    lien = row['Lien_article']
-                    resume = row['Resume']
-                    categories = ", ".join(row['Categorie'])
-                    markdown_content += f"- [{titre}]({lien}): {resume}\nCatégories : {categories}\n\n"
-                    added_rows_ids = added_rows_ids.append(row['id'])
+            for row in filtered_df.iter_rows(named=True):
+                titre = row['Titre_article']
+                lien = row['Lien_article']
+                resume = row['Resume']
+                categories = ", ".join(row['Categorie'])
+                markdown_content += f"- [{titre}]({lien}): {resume}\nCatégories : {categories}\n\n"
+                added_rows_ids = added_rows_ids + [row['id']]
     # Save to file
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(markdown_content)
@@ -132,7 +137,7 @@ def create_veille_qmd(
     return markdown_content
 
 
-def fetch_categories(logger=setup_logging()):
+def fetch_rubriques(logger=setup_logging()):
     """
     To fetch categories from the Rubrique table and send it back as a dictionnary 'Rubrique' : [list of categories]
 
@@ -143,14 +148,14 @@ def fetch_categories(logger=setup_logging()):
     rubriques_df = GristApi().fetch_table_pl(table_id=TABLE_RUBRIQUES)
 
     logger.info("Transformation en dictionnaire de catégories")
-    category_groups = dict(
+    rubriques_groups = dict(
         rubriques_df
         .group_by("Rubrique")
         .agg(pl.col("Categories"))
         .iter_rows()
     )
 
-    return category_groups
+    return rubriques_groups
 
 
 extract_rows_qmd()
