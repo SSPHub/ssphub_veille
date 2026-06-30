@@ -8,6 +8,7 @@ import polars as pl
 
 from src.utils.access_grist_api import GristApi
 from src.utils.logging import setup_logging
+from src.utils.config import COL_LINK
 from src.data.complete_veille import build_category_ref_maps
 
 TABLE_RUBRIQUES = "Rubriques"
@@ -130,7 +131,7 @@ def create_veille_qmd(
             markdown_content += f"## {group} :\n"
             for row in filtered_df.iter_rows(named=True):
                 titre = row['Titre_article']
-                lien = row['Lien_article']
+                lien = row[COL_LINK]
                 resume = row['Resume']
                 categories = ", ".join(row['Categorie'])
                 markdown_content += f"- [{titre}]({lien}): {resume}\nCatégories : {categories}\n\n"

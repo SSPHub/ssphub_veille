@@ -118,7 +118,7 @@ def test_fallback_categorises_unscrapeable_rows(rows, ref_maps, vocab, examples)
 
     targets = [
         r for r in rows
-        if is_blocked(r.get("Lien_article"))
+        if is_blocked(r.get(config.COL_LINK))
         and not cv.normalise_categories(r.get("Categorie"), id_to_name)
         and cv.fallback_text(r)
     ]

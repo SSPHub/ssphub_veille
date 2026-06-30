@@ -4,6 +4,7 @@ from src.data.clean_conv import clean_conv
 from src.data.formatting_time import convert_unix_time
 from src.utils.access_grist_api import GristApi
 from src.utils.logging import setup_logging
+from src.utils.config import COL_LINK
 
 # Regular expression to identify hyperlinks in Markdown format
 pattern = r"\[([^\]]+)\]\(([^)]+)\)"
@@ -27,7 +28,7 @@ def add_to_veille(my_conv_df, target_table="Test", logger=setup_logging()):
     # Dictionnary for renaming variables / Right part must correspond to template keywords
     variable_mapping = {
         "link_text": "Titre_article",
-        "hyperlink": "Lien_article",
+        "hyperlink": COL_LINK,
         "msg_link": "Quel_chanel",
         "body": "Message",
         "origin_server_ts": "Date",
@@ -92,7 +93,7 @@ def extract_and_add_to_veille(
     # Download data to filter new urls
     logger.info(f"Début du téléchargement de la table Grist cible {target_table}")
     old_conv_df = (
-        GristApi().fetch_table_pl(table_id=target_table).select("Lien_article").unique()
+        GristApi().fetch_table_pl(table_id=target_table).select(COL_LINK).unique()
     )
     logger.info(
         f"Table Grist cible {target_table} téléchargée, nombre de lignes : {len(old_conv_df)}\nTable cible téléchargée (table old_conv_df):\n{old_conv_df}"
@@ -101,7 +102,7 @@ def extract_and_add_to_veille(
     # Join new articles in former Grist table
     logger.info("Début de la création de la table Grist finale")
     my_conv_df = my_conv_df.join(
-        old_conv_df, left_on="hyperlink", right_on="Lien_article", how="anti"
+        old_conv_df, left_on="hyperlink", right_on=COL_LINK, how="anti"
     ).with_columns(  # To keep only url that are not already present in the Grist table
         pl.col("origin_server_ts").map_elements(
             lambda x: convert_unix_time(x)

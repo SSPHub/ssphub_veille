@@ -118,7 +118,7 @@ def test_build_category_examples(examples):
 # --------------------------------------------------------------------------- #
 def test_candidate_links_ordering():
     row = {
-        "Lien_article": "https://primary.fr/article",
+        config.COL_LINK: "https://primary.fr/article",
         "Resume": "voir aussi https://backup1.fr et https://backup2.fr",
     }
     assert cv.candidate_links(row) == [
@@ -131,7 +131,7 @@ def test_candidate_links_ordering():
 def test_candidate_links_skips_internal_link():
     # An internal Tchap link in Lien_article is ignored; we fall back to Resume.
     row = {
-        "Lien_article": config._INTERNAL_PREFIXES[0] + "#/room/abc",
+        config.COL_LINK: config._INTERNAL_PREFIXES[0] + "#/room/abc",
         "Resume": "le vrai lien https://real.fr",
     }
     assert cv.candidate_links(row) == ["https://real.fr"]
@@ -142,7 +142,7 @@ def test_candidate_links_skips_internal_link():
 # --------------------------------------------------------------------------- #
 def test_process_row_duplicate(vocab, examples):
     fields = cv.process_row(
-        {"id": 9, "Doublon_lien": 2, "Lien_article": "https://x.fr"},
+        {"id": 9, "Doublon_lien": 2, config.COL_LINK: "https://x.fr"},
         vocab, examples, mock.Mock(),
     )
     assert "doublon" in fields["Traitement"].lower()
@@ -152,7 +152,7 @@ def test_process_row_duplicate(vocab, examples):
 def test_process_row_no_working_link(vocab, examples):
     with mock.patch.object(cv, "fetch_if_working", return_value=None):
         fields = cv.process_row(
-            {"id": 10, "Doublon_lien": 1, "Lien_article": "https://dead.fr", "Resume": ""},
+            {"id": 10, "Doublon_lien": 1, config.COL_LINK: "https://dead.fr", "Resume": ""},
             vocab, examples, mock.Mock(),
         )
     assert fields["Traitement"].startswith("NO WORKING LINK FOUND")
@@ -167,7 +167,7 @@ def test_process_row_happy_path(vocab, examples):
     with mock.patch.object(cv, "fetch_if_working", return_value=FAKE_HTML), \
          mock.patch.object(cv, "ask_json", return_value=fake_llm):
         fields = cv.process_row(
-            {"id": 11, "Doublon_lien": 1, "Lien_article": "https://live.fr/a", "Resume": "x"},
+            {"id": 11, "Doublon_lien": 1, config.COL_LINK: "https://live.fr/a", "Resume": "x"},
             vocab, examples, mock.Mock(),
         )
     assert fields["Titre_article"] == "Un titre extrait"
@@ -185,7 +185,7 @@ def test_process_row_writes_category_as_rubriques_refs(vocab, examples):
     with mock.patch.object(cv, "fetch_if_working", return_value=FAKE_HTML), \
          mock.patch.object(cv, "ask_json", return_value=fake_llm):
         fields = cv.process_row(
-            {"id": 31, "Doublon_lien": 1, "Lien_article": "https://live.fr", "Resume": ""},
+            {"id": 31, "Doublon_lien": 1, config.COL_LINK: "https://live.fr", "Resume": ""},
             vocab, examples, mock.Mock(), id_to_name=id_to_name, name_to_id=name_to_id,
         )
     assert fields[cv.COL_CATEGORY] == ["L", 1, 2]  # Rubriques ids, not names
@@ -197,7 +197,7 @@ def test_process_row_drops_category_absent_from_rubriques(vocab, examples):
     with mock.patch.object(cv, "fetch_if_working", return_value=FAKE_HTML), \
          mock.patch.object(cv, "ask_json", return_value=fake_llm):
         fields = cv.process_row(
-            {"id": 32, "Doublon_lien": 1, "Lien_article": "https://live.fr", "Resume": ""},
+            {"id": 32, "Doublon_lien": 1, config.COL_LINK: "https://live.fr", "Resume": ""},
             vocab, examples, mock.Mock(), id_to_name={1: "IA"}, name_to_id={"IA": 1},
         )
     assert cv.COL_CATEGORY not in fields  # nothing writable -> column left untouched
@@ -208,7 +208,7 @@ def test_process_row_keeps_lien_article_when_original_works(vocab, examples):
     with mock.patch.object(cv, "fetch_if_working", return_value=FAKE_HTML), \
          mock.patch.object(cv, "ask_json", return_value=fake_llm):
         fields = cv.process_row(
-            {"id": 20, "Doublon_lien": 1, "Lien_article": "https://live.fr", "Resume": ""},
+            {"id": 20, "Doublon_lien": 1, config.COL_LINK: "https://live.fr", "Resume": ""},
             vocab, examples, mock.Mock(),
         )
     assert cv.COL_LINK not in fields  # no spurious rewrite
@@ -223,7 +223,7 @@ def test_process_row_writes_back_backup_link_from_resume(vocab, examples):
     with mock.patch.object(cv, "fetch_if_working", side_effect=fake_fetch), \
          mock.patch.object(cv, "ask_json", return_value=fake_llm):
         fields = cv.process_row(
-            {"id": 21, "Doublon_lien": 1, "Lien_article": "https://dead.fr",
+            {"id": 21, "Doublon_lien": 1, config.COL_LINK: "https://dead.fr",
              "Resume": "essaie plutot https://backup.fr"},
             vocab, examples, mock.Mock(),
         )
@@ -236,7 +236,7 @@ def test_process_row_writes_back_link_extracted_from_markdown(vocab, examples):
          mock.patch.object(cv, "ask_json", return_value=fake_llm):
         fields = cv.process_row(
             {"id": 22, "Doublon_lien": 1,
-             "Lien_article": "[ici](https://clean.fr/a) et [x](https://clean.fr/b)",
+             config.COL_LINK: "[ici](https://clean.fr/a) et [x](https://clean.fr/b)",
              "Resume": ""},
             vocab, examples, mock.Mock(),
         )
@@ -265,7 +265,7 @@ def test_process_row_fallback_categorises_without_overwriting(vocab, examples):
          mock.patch.object(cv, "ask_json", return_value=fake_llm) as ask:
         fields = cv.process_row(
             {
-                "id": 12, "Doublon_lien": 1, "Lien_article": "https://dead.fr",
+                "id": 12, "Doublon_lien": 1, config.COL_LINK: "https://dead.fr",
                 "Titre_article": "Un titre humain", "Resume": "Un resume humain.",
                 "Categorie": None,
             },
@@ -283,7 +283,7 @@ def test_process_row_fallback_no_text(vocab, examples):
          mock.patch.object(cv, "ask_json") as ask:
         fields = cv.process_row(
             {
-                "id": 13, "Doublon_lien": 1, "Lien_article": "https://dead.fr",
+                "id": 13, "Doublon_lien": 1, config.COL_LINK: "https://dead.fr",
                 "Resume": "", "Titre_article": "",
             },
             vocab, examples, mock.Mock(),
