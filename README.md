@@ -183,7 +183,7 @@ When a page is fetched successfully the LLM results **overwrite** the three
 columns; the fallback only fills empty cells. The column/table names
 (`Lien_article`, `Resume`, `Titre_article`, `Categorie`, `Doublon_lien`,
 `Traitement`, `Rubriques`) are defined as constants at the top of
-`src/data/complete_veille.py`.
+`src/utils/config.py`.
 
 > **One-time Grist check.** `Traitement` must be a **data** column (type Text),
 > not a formula column — Grist refuses API writes to formula columns. The tool
@@ -264,6 +264,7 @@ ssphub_veille/
 ├── README.md                        # this file
 ├── src/                             # Python package
 │   ├── extract.py                   # EXTRACT stage: clean a Tchap export, add new rows to Grist
+│   ├── complete.py                  # COMPLETE stage: complete a Grist table with LLM
 │   ├── data/                        # data shaping + the completion stage
 │   │   ├── clean_conv.py            # parse the Tchap json export into a table of links
 │   │   ├── formatting_link.py       # pull link text/url out of Markdown & HTML

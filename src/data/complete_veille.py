@@ -26,44 +26,27 @@ the behaviour matches the three-step spec.
 
 import re
 from datetime import datetime
-from zoneinfo import ZoneInfo
 
 import requests
 from bs4 import BeautifulSoup
 
-from src.utils.access_grist_api import GristApi
 from src.utils.llm_client import ask_json
-from src.utils.logging import setup_logging
-
-# --------------------------------------------------------------------------- #
-# Configuration knobs
-# --------------------------------------------------------------------------- #
-COL_LINK = "Lien_article"
-COL_RESUME = "Resume"
-COL_TITLE = "Titre_article"
-COL_CATEGORY = "Categorie"
-COL_DUPLICATE = "Doublon_lien"
-COL_PROCESS = "Traitement"
-
-# The Categorie column is a Reference List into the `Rubriques` table: the cell
-# holds Rubriques row ids (e.g. ["L", 1, 2]), not category names. The category
-# label lives in the Rubriques "Category" column.
-RUBRIQUES_TABLE = "Rubriques"
-COL_RUBRIQUE_CATEGORY = "Categories"
-
-REQUEST_TIMEOUT = 15  # seconds, when checking/fetching a link
-MAX_ARTICLE_CHARS = 8000  # how much article text we feed the LLM
-DEFAULT_N_EXAMPLES = 15  # category example assignments sent to the LLM
-PARIS_TZ = ZoneInfo("Europe/Paris")  # timestamps written to Grist use Paris time
-USER_AGENT = (
-    "Mozilla/5.0 (compatible; ssphub-veille-bot/1.0; "
-    "+https://github.com/SSPHub/ssphub_veille)"
+from src.utils.config import (
+    COL_LINK,
+    COL_RESUME,
+    COL_TITLE,
+    COL_CATEGORY,
+    COL_DUPLICATE,
+    COL_PROCESS,
+    COL_RUBRIQUE_CATEGORY,
+    REQUEST_TIMEOUT,
+    MAX_ARTICLE_CHARS,
+    DEFAULT_N_EXAMPLES,
+    PARIS_TZ,
+    USER_AGENT,
+    _URL_RE,
+    _INTERNAL_PREFIXES
 )
-
-# http(s) URL matcher (no trailing punctuation captured)
-_URL_RE = re.compile(r"https?://[^\s)\]<>\"']+")
-# internal links we never treat as the article
-_INTERNAL_PREFIXES = ("https://tchap.gouv.fr/", "https://matrix.to")
 
 
 # --------------------------------------------------------------------------- #
@@ -557,100 +540,3 @@ def formula_target_columns(api, table_id, target_cols, logger) -> list[str]:
     }
     return [col for col in target_cols if is_formula.get(col)]
 
-
-# --------------------------------------------------------------------------- #
-# Entry point
-# --------------------------------------------------------------------------- #
-def complete_veille(
-    table_id="Test",
-    limit=None,
-    dry_run=False,
-    n_examples=DEFAULT_N_EXAMPLES,
-    logger=None,
-):
-    """
-    Complete the rows of `table_id` whose `Traitement` column is empty.
-
-    Args:
-        table_id: Grist table id (e.g. "Test" or "Veille").
-        limit: optional cap on the number of rows processed (handy for testing).
-        dry_run: compute everything but do NOT write back to Grist.
-        n_examples: number of example category assignments sent to the LLM.
-
-    Returns:
-        the list of {"id", "fields"} updates that were (or would be) applied.
-    """
-    logger = logger or setup_logging()
-    api = GristApi()
-
-    # Pre-flight: make sure the columns we intend to write are writable.
-    # `Traitement` in particular is often an (empty) formula column, which Grist
-    # refuses to write to -> every PATCH would fail. Stop early if so.
-    target_cols = [COL_PROCESS, COL_TITLE, COL_RESUME, COL_CATEGORY, COL_LINK]
-    blocked = formula_target_columns(api, table_id, target_cols, logger)
-    if blocked and not dry_run:
-        raise RuntimeError(
-            f"Ces colonnes sont des colonnes formule (non modifiables via l'API) : "
-            f"{blocked}. Dans Grist, convertis-les en colonnes de donnees "
-            f"(ex. type 'Text' pour {COL_PROCESS}) avant de relancer."
-        )
-    if blocked and dry_run:
-        logger.warning(
-            f"[dry-run] colonnes formule detectees (non modifiables) : {blocked}"
-        )
-
-    logger.info(f"Telechargement de la table Grist '{table_id}'")
-    df = api.fetch_table_pl(table_id)
-    rows = df.to_dicts()
-    logger.info(f"{len(rows)} lignes recuperees")
-
-    # The Categorie column references the Rubriques table; load it so we can show
-    # the LLM real category names and write its answers back as Rubriques ids.
-    try:
-        rubriques_rows = api.fetch_table_pl(RUBRIQUES_TABLE).to_dicts()
-    except Exception as exc:
-        logger.warning(
-            f"Impossible de charger la table '{RUBRIQUES_TABLE}' ({exc}); "
-            "les categories ne pourront pas etre traitees."
-        )
-        rubriques_rows = []
-    id_to_name, name_to_id = build_category_ref_maps(rubriques_rows)
-    vocabulary = category_vocabulary(id_to_name)
-    examples = build_category_examples(rows, id_to_name, n=n_examples)
-    logger.info(
-        f"{len(vocabulary)} categories dans '{RUBRIQUES_TABLE}', "
-        f"{len(examples)} exemples d'affectation"
-    )
-
-    targets = select_rows(rows)  # rows whose Traitement is empty
-    if limit is not None:
-        targets = targets[:limit]
-    logger.info(f"{len(targets)} lignes a traiter (Traitement vide)")
-
-    updates = []
-    for row in targets:
-        try:
-            fields = process_row(
-                row, vocabulary, examples, logger, id_to_name, name_to_id
-            )
-        except Exception as exc:  # never let one row kill the batch
-            logger.error(f"[id {row.get('id')}] erreur inattendue : {exc}")
-            fields = {COL_PROCESS: f"ERREUR : {exc} - {now_stamp()}"}
-
-        update = {"id": row.get("id"), "fields": fields}
-        updates.append(update)
-
-        if dry_run:
-            logger.info(f"[dry-run] [id {update['id']}] {fields}")
-            continue
-
-        resp = api.update_records(table_id, json={"records": [update]})
-        if resp.status_code == 200:
-            logger.info(f"[id {update['id']}] mis a jour")
-        else:
-            logger.error(
-                f"[id {update['id']}] echec maj ({resp.status_code}): {resp.text[:200]}"
-            )
-
-    logger.info(f"Termine : {len(updates)} lignes traitees (dry_run={dry_run})")
-    return updates
