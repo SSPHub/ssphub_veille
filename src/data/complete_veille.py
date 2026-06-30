@@ -88,7 +88,7 @@ def extract_all_links(text: str) -> list[str]:
     out, seen = [], set()
     for raw in _URL_RE.findall(text):
         url = raw.rstrip(".,;")  # strip trailing sentence punctuation
-        if url.startswith(_INTERNAL_PREFIXES):
+        if url.startswith(_INTERNAL_PREFIXES[0]):
             continue
         if url not in seen:
             seen.add(url)

@@ -2,6 +2,7 @@ import re
 
 from bs4 import BeautifulSoup, MarkupResemblesLocatorWarning
 import warnings
+from src.utils.config import _INTERNAL_PREFIXES
 
 warnings.filterwarnings("ignore", category=MarkupResemblesLocatorWarning)  # Filter out warning message from bs4 that identifies input to parse as html
 
@@ -25,8 +26,8 @@ def extract_link_rawtxt(text):
     match = re.search(pattern, text)
     if match:
         href = match.group(0)
-        if href.startswith("https://tchap.gouv.fr/") or href.startswith(
-            "https://matrix.to"
+        if href.startswith(_INTERNAL_PREFIXES[0]) or href.startswith(
+            _INTERNAL_PREFIXES[1]
         ):
             href = None
     else:
@@ -67,8 +68,8 @@ def extract_link_title_html(text):
     first_title = ""
     for link in links:
         href = link["href"]
-        if href.startswith("https://tchap.gouv.fr/") or href.startswith(
-            "https://matrix.to"
+        if href.startswith(_INTERNAL_PREFIXES[0]) or href.startswith(
+            _INTERNAL_PREFIXES[1]
         ):  # Filtering internal links
             href = None
         if href is not None:

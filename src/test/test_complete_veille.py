@@ -21,6 +21,7 @@ import pytest
 
 import src.data.complete_veille as cv
 import src.utils.llm_client as llm
+import src.utils.config as config
 
 FAKE_HTML = (
     "<html><head><title>Mon Titre</title></head>"
@@ -130,7 +131,7 @@ def test_candidate_links_ordering():
 def test_candidate_links_skips_internal_link():
     # An internal Tchap link in Lien_article is ignored; we fall back to Resume.
     row = {
-        "Lien_article": "https://tchap.gouv.fr/#/room/abc",
+        "Lien_article": config._INTERNAL_PREFIXES[0] + "#/room/abc",
         "Resume": "le vrai lien https://real.fr",
     }
     assert cv.candidate_links(row) == ["https://real.fr"]

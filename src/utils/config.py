@@ -30,5 +30,5 @@ USER_AGENT = (
 
 # http(s) URL matcher (no trailing punctuation captured)
 _URL_RE = re.compile(r"https?://[^\s)\]<>\"']+")
-# internal links we never treat as the article
+# internal links
 _INTERNAL_PREFIXES = ("https://tchap.gouv.fr/", "https://matrix.to")

@@ -3,7 +3,7 @@ import json
 import polars as pl
 
 from src.data.formatting_link import extract_link_title
-
+from src.utils.config import _INTERNAL_PREFIXES
 
 def clean_conv(file_path):
     """
@@ -45,7 +45,7 @@ def clean_conv(file_path):
     # Streamlining data
     func_conv_df = (
         func_conv_df.with_columns(
-            msg_link="https://tchap.gouv.fr/#/room/"
+            msg_link=_INTERNAL_PREFIXES[0] + "#/room/"
             + pl.col("room_id")
             + "/"
             + pl.col("event_id"),  # Creating link to tchap msg
