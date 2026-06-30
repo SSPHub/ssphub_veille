@@ -4,12 +4,13 @@ Tooling to build the **SSPHub veille** (the curated watch that feeds the
 [newsletter](https://ssphub.netlify.app/infolettre/)). It is a two-stage
 pipeline around a Grist *Veille* table:
 
-1. **Extract** — read a Tchap conversation export and add the article links it
+1. **Extract** - read a Tchap conversation export and add the article links it
    contains as new rows in the Grist table.
-2. **Complete** — for each row, use an LLM to fill in the article **title**, a
+2. **Complete the table** - for each row, use an LLM to fill in the article **title**, a
    short **summary** and one or more **categories**.
+3. **Complete as QMD file** - Extract rows "A garder" and format them as a qmd file for newsletter
 
-Both stages are driven from a single command-line tool, `veille.py`, and are
+All the stages are driven from a single command-line tool, `veille.py`, and are
 meant to run on [SSPCloud / Onyxia](https://datalab.sspcloud.fr/).
 
 Des assistants d'IA ont été utilisés pour ce repo. 
@@ -17,9 +18,9 @@ Des assistants d'IA ont été utilisés pour ce repo.
 ## Pipeline at a glance
 
 ```
- Tchap conversation                Grist "Veille" table                 Grist "Veille" table
-   (export.json)   ──[ extract ]──▶   + new rows (link, date)  ──[ complete ]──▶  title, summary,
-                                       Traitement = empty                          category filled
+ Tchap conversation                       Grist "Veille" table                   Grist "Veille" table                      Export as a formatted
+   (export.json)   ──[ extract ]──▶   + new rows (link, date)  ──[ complete ]──▶  title, summary,  ──[ to-infolettre ]──▶ QMD file with 
+                                       Traitement = empty                          category filled                          Resume, lien ...
 ```
 
 | Command | What it does |
@@ -27,6 +28,7 @@ Des assistants d'IA ont été utilisés pour ce repo.
 | `uv run veille.py extract` | Tchap export → new rows in Grist (links only). |
 | `uv run veille.py complete` | Fill title/summary/category on rows whose `Traitement` is empty. |
 | `uv run veille.py extract-and-complete` | Run both, in order, on the same table. |
+| `uv run veille.py to-infolettre` | Once articles are selected, format them as a QMD file. |
 
 ## Prerequisites
 
@@ -99,9 +101,9 @@ Name the secret (e.g. `SSPHub`), then add one variable per row above:
 Launch a **VSCode-Python** service in Onyxia with the secret injected, then clone
 this repository inside it.
 
-## Usage
+# Usage
 
-### Step 1 — Export the Tchap conversation
+## Step 1 — Export the Tchap conversation
 
 - Open the discussion in Tchap and click its name (top of the window).
 - In the right-hand panel choose *Export conversation* with:
@@ -110,7 +112,7 @@ this repository inside it.
   - max size: 3 MB.
 - Save the file into the **ssphub_veille** directory as **export.json**.
 
-### Step 2 — Run the pipeline
+## Step 2 — Run the pipeline
 
 The simplest path runs both stages at once:
 
@@ -137,7 +139,7 @@ uv run veille.py complete -t Veille                   # then the rest
 > default everywhere, so a bare command never touches production; pass
 > `-t Veille` to write to the real table.
 
-#### `complete` / `extract-and-complete` options
+### `complete` / `extract-and-complete` options
 
 | Option | Effect |
 | --- | --- |
@@ -190,7 +192,9 @@ columns; the fallback only fills empty cells. The column/table names
 > detects this and stops with a clear message *before* spending any LLM calls.
 > `Doublon_lien` is expected to stay a formula column; it is only read.
 
-## Notes and limitations
+# Notes
+
+## Notes
 
 - Links on sites that block scrapers or serve JavaScript-only pages (x.com,
   reddit, LinkedIn, YouTube, some news sites) fail the link check. Such rows
@@ -199,6 +203,70 @@ columns; the fallback only fills empty cells. The column/table names
 - The category vocabulary is the `Category` column of the `Rubriques` table.
   `??` is the reserved "unknown / unsure" category — add it as a row in
   `Rubriques` if you want the tool to be able to assign it.
+
+
+## Troubleshooting
+
+**Records are not written / the API silently does a GET.** Some Grist setups
+answer an API write with a `302` redirect that turns the `POST` into a `GET`,
+dropping the body. Diagnose it by running the redirect check from `test_all.py`:
+
+```bash
+uv run python -c "from src.test.test_all import test_redirect_post; test_redirect_post()"
+```
+
+A healthy result shows two `200` responses:
+
+```text
+Test with allow_redirects=True
+<Response [200]>
+.../tables/Test/records
+GET
+Test with allow_redirects=False
+<Response [200]>
+```
+
+If the second response is `<Response [302]>`, the redirect problem is present.
+
+# Project details
+
+## Project structure
+
+```text
+ssphub_veille/
+├── veille.py                        # CLI entry point: `extract`, `complete`, `extract-and-complete`
+├── pyproject.toml                   # project metadata, dependencies, pytest config
+├── uv.lock                          # locked dependency versions (uv)
+├── .python-version                  # pinned Python version
+├── README.md                        # this file
+├── src/                             # Python package
+│   ├── extract.py                   # EXTRACT stage: clean a Tchap export, add new rows to Grist
+│   ├── complete_table               # COMPLETE stage: complete a Grist table with LLM
+│   ├── complete_qmd                 # COMPLETE stage: from a completed and reviewd Grist table, create a qmd
+│   ├── data/                        # data shaping + the completion stage
+│   │   ├── clean_conv.py            # parse the Tchap json export into a table of links
+│   │   ├── formatting_link.py       # pull link text/url out of Markdown & HTML
+│   │   ├── formatting_time.py       # Tchap Unix timestamp -> readable date
+│   │   └── complete_veille.py       # COMPLETE stage: pick rows, resolve link, call LLM, write back
+│   ├── utils/                       # shared helpers
+│   │   ├── access_grist_api.py      # GristApi: read/add/update Grist records & columns
+│   │   ├── llm_client.py            # OpenAI-compatible client for the SSP Cloud LLM lab
+│   │   └── logging.py               # setup_logging() helper
+│   └── test/                        # tests
+│       ├── test_complete_veille.py  # pytest unit tests for completion (mocked, no creds)
+│       ├── test_realdata.py         # pytest integration tests on the live Grist Test table
+│       ├── test_all.py              # manual Grist smoke checks (e.g. test_redirect_post)
+│       └── test_grist.sh            # curl version of the redirect check
+└── docs/                            # setup screenshots + call graph
+    ├── graphs.sh                    # regenerate the call graph (code2flow)
+    ├── call_graph_all_but_test.png  # generated function call graph
+    └── *.png                        # setup screenshots used in this README
+```
+
+The function-level call graph (regenerate with `bash docs/graphs.sh`):
+
+![Overview of the functions (excluding tests)](docs/call_graph_all_but_test.png)
+
 
 ## Tests
 
@@ -229,62 +297,3 @@ Use it directly:
 uv run python -c "from src.test.test_all import test_redirect_post; test_redirect_post()"
 bash src/test/test_grist.sh    # same check, via curl
 ```
-
-## Troubleshooting
-
-**Records are not written / the API silently does a GET.** Some Grist setups
-answer an API write with a `302` redirect that turns the `POST` into a `GET`,
-dropping the body. Diagnose it by running the redirect check from `test_all.py`:
-
-```bash
-uv run python -c "from src.test.test_all import test_redirect_post; test_redirect_post()"
-```
-
-A healthy result shows two `200` responses:
-
-```text
-Test with allow_redirects=True
-<Response [200]>
-.../tables/Test/records
-GET
-Test with allow_redirects=False
-<Response [200]>
-```
-
-If the second response is `<Response [302]>`, the redirect problem is present.
-
-## Project structure
-
-```text
-ssphub_veille/
-├── veille.py                        # CLI entry point: `extract`, `complete`, `extract-and-complete`
-├── pyproject.toml                   # project metadata, dependencies, pytest config
-├── uv.lock                          # locked dependency versions (uv)
-├── .python-version                  # pinned Python version
-├── README.md                        # this file
-├── src/                             # Python package
-│   ├── extract.py                   # EXTRACT stage: clean a Tchap export, add new rows to Grist
-│   ├── complete.py                  # COMPLETE stage: complete a Grist table with LLM
-│   ├── data/                        # data shaping + the completion stage
-│   │   ├── clean_conv.py            # parse the Tchap json export into a table of links
-│   │   ├── formatting_link.py       # pull link text/url out of Markdown & HTML
-│   │   ├── formatting_time.py       # Tchap Unix timestamp -> readable date
-│   │   └── complete_veille.py       # COMPLETE stage: pick rows, resolve link, call LLM, write back
-│   ├── utils/                       # shared helpers
-│   │   ├── access_grist_api.py      # GristApi: read/add/update Grist records & columns
-│   │   ├── llm_client.py            # OpenAI-compatible client for the SSP Cloud LLM lab
-│   │   └── logging.py               # setup_logging() helper
-│   └── test/                        # tests
-│       ├── test_complete_veille.py  # pytest unit tests for completion (mocked, no creds)
-│       ├── test_realdata.py         # pytest integration tests on the live Grist Test table
-│       ├── test_all.py              # manual Grist smoke checks (e.g. test_redirect_post)
-│       └── test_grist.sh            # curl version of the redirect check
-└── docs/                            # setup screenshots + call graph
-    ├── graphs.sh                    # regenerate the call graph (code2flow)
-    ├── call_graph_all_but_test.png  # generated function call graph
-    └── *.png                        # setup screenshots used in this README
-```
-
-The function-level call graph (regenerate with `bash docs/graphs.sh`):
-
-![Overview of the functions (excluding tests)](docs/call_graph_all_but_test.png)
