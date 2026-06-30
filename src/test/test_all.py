@@ -14,7 +14,7 @@ def test_add_records(**kwargs):
     data_list = [
         {
             "fields": {
-                "Titre_article": "TEST FROM ONYXIA - 2 Les Rencontres du Numérique Ouvert le 13/11",
+                COL_TITLE: "TEST FROM ONYXIA - 2 Les Rencontres du Numérique Ouvert le 13/11",
                 COL_LINK: "https://docs.numerique.gouv.fr/dorerer/",
                 "Quel_chanel": _INTERNAL_PREFIXES[0] + "#/room/!DTuNyduZcTlsapzfyV:agent.finances.tchap.gouv.fr/$175974485023378hbhrc:agent.finances.tchap.gouv.fr",
                 "Resume": "",
@@ -23,7 +23,7 @@ def test_add_records(**kwargs):
         },
         {
             "fields": {
-                "Titre_article": "TEST FROM ONYXIA - vcvxcwcvwxxxw",
+                COL_TITLE: "TEST FROM ONYXIA - vcvxcwcvwxxxw",
                 COL_LINK: "https://www.linkedin.com/posts/",
                 "Quel_chanel": _INTERNAL_PREFIXES[0] + "#/room/!DTuNyduZcTlsapzfyV:agent.finances.tchap.gouv.fr/$175978782747889EWpei:agent.finances.tchap.gouv.fr",
                 "Resume": "ht au cm d'e [qui a réussi](https://www.linkedin.com/) 🚀",
@@ -32,7 +32,7 @@ def test_add_records(**kwargs):
         },
         {
             "fields": {
-                "Titre_article": "TEST FROM ONYXIA - Webinaire eurostat: utilisation de l'ia pour la stat publique",
+                COL_TITLE: "TEST FROM ONYXIA - Webinaire eurostat: utilisation de l'ia pour la stat publique",
                 COL_LINK: "https://link.europa.eu",
                 "Quel_chanel": _INTERNAL_PREFIXES[0] + "#/room/!DTuNyduZcTlsapzfyV:agent.finances.tchap.gouv.fr/$1759935114134590jLsxw:agent.finances.tchap.gouv.fr",
                 "Resume": None,

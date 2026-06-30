@@ -35,10 +35,10 @@ FAKE_HTML = (
 @pytest.fixture
 def sample_rows():
     return [
-        {"id": 1, "Categorie": ["L", "IA", "Stat publique"], "Titre_article": "Article A"},
-        {"id": 2, "Categorie": ["L", "IA"], "Resume": "Resume B"},
-        {"id": 3, "Categorie": None, "Titre_article": "Pas de cat"},
-        {"id": 4, "Categorie": "Cartographie", "Titre_article": "Carte"},
+        {"id": 1, config.COL_CATEGORY: ["L", "IA", "Stat publique"], config.COL_TITLE: "Article A"},
+        {"id": 2, config.COL_CATEGORY: ["L", "IA"], config.COL_RESUME: "Resume B"},
+        {"id": 3, config.COL_CATEGORY: None, config.COL_TITLE: "Pas de cat"},
+        {"id": 4, config.COL_CATEGORY: "Cartographie", config.COL_TITLE: "Carte"},
     ]
 
 
@@ -170,11 +170,11 @@ def test_process_row_happy_path(vocab, examples):
             {"id": 11, "Doublon_lien": 1, config.COL_LINK: "https://live.fr/a", "Resume": "x"},
             vocab, examples, mock.Mock(),
         )
-    assert fields["Titre_article"] == "Un titre extrait"
-    assert fields["Resume"] == "Resume telegraphique. Deux phrases."
-    assert fields["Categorie"] == ["L", "IA"]  # no ref map passed -> names kept
-    assert fields["Traitement"].startswith("Traite le")
-    assert cv.COL_LINK not in fields  # original link worked -> not rewritten
+    assert fields[config.COL_TITLE] == "Un titre extrait"
+    assert fields[config.COL_RESUME] == "Resume telegraphique. Deux phrases."
+    assert fields[config.COL_CATEGORY] == ["L", "IA"]  # no ref map passed -> names kept
+    assert fields[config.COL_PROCESS].startswith("Traite le")
+    assert config.COL_LINK not in fields  # original link worked -> not rewritten
 
 
 def test_process_row_writes_category_as_rubriques_refs(vocab, examples):
@@ -185,10 +185,10 @@ def test_process_row_writes_category_as_rubriques_refs(vocab, examples):
     with mock.patch.object(cv, "fetch_if_working", return_value=FAKE_HTML), \
          mock.patch.object(cv, "ask_json", return_value=fake_llm):
         fields = cv.process_row(
-            {"id": 31, "Doublon_lien": 1, config.COL_LINK: "https://live.fr", "Resume": ""},
+            {"id": 31, "Doublon_lien": 1, config.COL_LINK: "https://live.fr", config.COL_RESUME: ""},
             vocab, examples, mock.Mock(), id_to_name=id_to_name, name_to_id=name_to_id,
         )
-    assert fields[cv.COL_CATEGORY] == ["L", 1, 2]  # Rubriques ids, not names
+    assert fields[config.COL_CATEGORY] == ["L", 1, 2]  # Rubriques ids, not names
 
 
 def test_process_row_drops_category_absent_from_rubriques(vocab, examples):
@@ -197,10 +197,10 @@ def test_process_row_drops_category_absent_from_rubriques(vocab, examples):
     with mock.patch.object(cv, "fetch_if_working", return_value=FAKE_HTML), \
          mock.patch.object(cv, "ask_json", return_value=fake_llm):
         fields = cv.process_row(
-            {"id": 32, "Doublon_lien": 1, config.COL_LINK: "https://live.fr", "Resume": ""},
+            {"id": 32, "Doublon_lien": 1, config.COL_LINK: "https://live.fr", config.COL_RESUME: ""},
             vocab, examples, mock.Mock(), id_to_name={1: "IA"}, name_to_id={"IA": 1},
         )
-    assert cv.COL_CATEGORY not in fields  # nothing writable -> column left untouched
+    assert config.COL_CATEGORY not in fields  # nothing writable -> column left untouched
 
 
 def test_process_row_keeps_lien_article_when_original_works(vocab, examples):
@@ -208,10 +208,10 @@ def test_process_row_keeps_lien_article_when_original_works(vocab, examples):
     with mock.patch.object(cv, "fetch_if_working", return_value=FAKE_HTML), \
          mock.patch.object(cv, "ask_json", return_value=fake_llm):
         fields = cv.process_row(
-            {"id": 20, "Doublon_lien": 1, config.COL_LINK: "https://live.fr", "Resume": ""},
+            {"id": 20, "Doublon_lien": 1, config.COL_LINK: "https://live.fr", config.COL_RESUME: ""},
             vocab, examples, mock.Mock(),
         )
-    assert cv.COL_LINK not in fields  # no spurious rewrite
+    assert config.COL_LINK not in fields  # no spurious rewrite
 
 
 def test_process_row_writes_back_backup_link_from_resume(vocab, examples):
@@ -224,10 +224,10 @@ def test_process_row_writes_back_backup_link_from_resume(vocab, examples):
          mock.patch.object(cv, "ask_json", return_value=fake_llm):
         fields = cv.process_row(
             {"id": 21, "Doublon_lien": 1, config.COL_LINK: "https://dead.fr",
-             "Resume": "essaie plutot https://backup.fr"},
+             config.COL_RESUME: "essaie plutot https://backup.fr"},
             vocab, examples, mock.Mock(),
         )
-    assert fields[cv.COL_LINK] == "https://backup.fr"  # Lien_article updated
+    assert fields[config.COL_LINK] == "https://backup.fr"  # Lien_article updated
 
 
 def test_process_row_writes_back_link_extracted_from_markdown(vocab, examples):
@@ -240,7 +240,7 @@ def test_process_row_writes_back_link_extracted_from_markdown(vocab, examples):
              "Resume": ""},
             vocab, examples, mock.Mock(),
         )
-    assert fields[cv.COL_LINK] == "https://clean.fr/a"  # clean URL written back
+    assert fields[config.COL_LINK] == "https://clean.fr/a"  # clean URL written back
 
 
 # --------------------------------------------------------------------------- #
@@ -266,16 +266,16 @@ def test_process_row_fallback_categorises_without_overwriting(vocab, examples):
         fields = cv.process_row(
             {
                 "id": 12, "Doublon_lien": 1, config.COL_LINK: "https://dead.fr",
-                "Titre_article": "Un titre humain", "Resume": "Un resume humain.",
-                "Categorie": None,
+                config.COL_TITLE: "Un titre humain", config.COL_RESUME: "Un resume humain.",
+                config.COL_CATEGORY: None,
             },
             vocab, examples, mock.Mock(),
         )
         ask.assert_called_once()  # the LLM was called via the fallback
-    assert fields[cv.COL_PROCESS].startswith("Traite via texte existant")
-    assert fields[cv.COL_CATEGORY] == ["L", "IA"]  # category filled from existing text
-    assert cv.COL_TITLE not in fields              # curated title NOT overwritten
-    assert cv.COL_RESUME not in fields             # curated resume NOT overwritten
+    assert fields[config.COL_PROCESS].startswith("Traite via texte existant")
+    assert fields[config.COL_CATEGORY] == ["L", "IA"]  # category filled from existing text
+    assert config.COL_TITLE not in fields              # curated title NOT overwritten
+    assert config.COL_RESUME not in fields             # curated resume NOT overwritten
 
 
 def test_process_row_fallback_no_text(vocab, examples):
@@ -284,12 +284,12 @@ def test_process_row_fallback_no_text(vocab, examples):
         fields = cv.process_row(
             {
                 "id": 13, "Doublon_lien": 1, config.COL_LINK: "https://dead.fr",
-                "Resume": "", "Titre_article": "",
+                config.COL_RESUME: "", config.COL_TITLE: "",
             },
             vocab, examples, mock.Mock(),
         )
         ask.assert_not_called()  # no text to work from -> no LLM call
-    assert fields[cv.COL_PROCESS].startswith("NO WORKING LINK FOUND")
+    assert fields[config.COL_PROCESS].startswith("NO WORKING LINK FOUND")
 
 
 # --------------------------------------------------------------------------- #
@@ -300,16 +300,16 @@ def test_formula_target_columns_flags_formula_cols():
     api.fetch_columns.return_value = mock.Mock(
         json=lambda: {
             "columns": [
-                {"id": "Titre_article", "fields": {"isFormula": False}},
-                {"id": "Resume", "fields": {"isFormula": False}},
-                {"id": "Categorie", "fields": {"isFormula": False}},
-                {"id": "Traitement", "fields": {"isFormula": True}},
+                {"id": config.COL_TITLE, "fields": {"isFormula": False}},
+                {"id": config.COL_RESUME, "fields": {"isFormula": False}},
+                {"id": config.COL_CATEGORY, "fields": {"isFormula": False}},
+                {"id": config.COL_PROCESS, "fields": {"isFormula": True}},
             ]
         }
     )
     blocked = cv.formula_target_columns(
         api, "Veille",
-        [cv.COL_PROCESS, cv.COL_TITLE, cv.COL_RESUME, cv.COL_CATEGORY],
+        [config.COL_PROCESS, config.COL_TITLE, config.COL_RESUME, config.COL_CATEGORY],
         mock.Mock(),
     )
     assert blocked == ["Traitement"]
@@ -319,7 +319,7 @@ def test_formula_target_columns_tolerates_fetch_error():
     api = mock.Mock()
     api.fetch_columns.side_effect = RuntimeError("network down")
     # On a metadata-fetch error it warns and returns [] (does not block the run).
-    assert cv.formula_target_columns(api, "Veille", [cv.COL_PROCESS], mock.Mock()) == []
+    assert cv.formula_target_columns(api, "Veille", [config.COL_PROCESS], mock.Mock()) == []
 
 
 if __name__ == "__main__":

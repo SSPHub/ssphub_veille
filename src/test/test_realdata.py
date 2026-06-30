@@ -98,7 +98,7 @@ def test_process_all_rows_without_crashing(rows, ref_maps, vocab, examples):
          mock.patch.object(cv, "ask_json", return_value=fake_llm):
         for r in rows:
             fields = cv.process_row(r, vocab, examples, mock.Mock(), id_to_name, name_to_id)
-            assert cv.COL_PROCESS in fields
+            assert config.COL_PROCESS in fields
             assert "id" not in fields  # the row id is carried separately, not in fields
 
 
@@ -119,7 +119,7 @@ def test_fallback_categorises_unscrapeable_rows(rows, ref_maps, vocab, examples)
     targets = [
         r for r in rows
         if is_blocked(r.get(config.COL_LINK))
-        and not cv.normalise_categories(r.get("Categorie"), id_to_name)
+        and not cv.normalise_categories(r.get(config.COL_CATEGORY), id_to_name)
         and cv.fallback_text(r)
     ]
     if not targets:
@@ -133,10 +133,10 @@ def test_fallback_categorises_unscrapeable_rows(rows, ref_maps, vocab, examples)
                            return_value={"titre": "", "resume": "", "categories": [a_category]}):
         for r in targets:
             fields = cv.process_row(r, vocab, examples, mock.Mock(), id_to_name, name_to_id)
-            assert "NO WORKING LINK" not in fields[cv.COL_PROCESS]
-            assert fields[cv.COL_CATEGORY] == expected_ref  # written as Rubriques ids
-            if cv.clean_text(r.get("Titre_article")):
-                assert cv.COL_TITLE not in fields  # existing title preserved
+            assert "NO WORKING LINK" not in fields[config.COL_PROCESS]
+            assert fields[config.COL_CATEGORY] == expected_ref  # written as Rubriques ids
+            if cv.clean_text(r.get(config.COL_TITLE)):
+                assert config.COL_TITLE not in fields  # existing title preserved
 
 
 def test_update_records_roundtrip(rows):
@@ -147,23 +147,23 @@ def test_update_records_roundtrip(rows):
 
     target = rows[0]
     row_id = target["id"]
-    original = target.get(cv.COL_PROCESS)
+    original = target.get(config.COL_PROCESS)
     sentinel = f"__pytest_roundtrip__ {os.getpid()}"
     api = cv.GristApi()
 
     try:
         resp = api.update_records(
-            TEST_TABLE, json={"records": [{"id": row_id, "fields": {cv.COL_PROCESS: sentinel}}]}
+            TEST_TABLE, json={"records": [{"id": row_id, "fields": {config.COL_PROCESS: sentinel}}]}
         )
         assert resp.status_code == 200, (resp.status_code, resp.text[:200])
 
         after = {r["id"]: r for r in api.fetch_table_pl(TEST_TABLE).to_dicts()}
-        assert after[row_id][cv.COL_PROCESS] == sentinel
+        assert after[row_id][config.COL_PROCESS] == sentinel
     finally:
         # Always restore the original value (empty string clears the cell).
         api.update_records(
             TEST_TABLE,
-            json={"records": [{"id": row_id, "fields": {cv.COL_PROCESS: original or ""}}]},
+            json={"records": [{"id": row_id, "fields": {config.COL_PROCESS: original or ""}}]},
         )
 
 

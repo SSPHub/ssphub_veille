@@ -4,7 +4,7 @@ from src.data.clean_conv import clean_conv
 from src.data.formatting_time import convert_unix_time
 from src.utils.access_grist_api import GristApi
 from src.utils.logging import setup_logging
-from src.utils.config import COL_LINK
+from src.utils.config import COL_LINK, COL_TITLE
 
 # Regular expression to identify hyperlinks in Markdown format
 pattern = r"\[([^\]]+)\]\(([^)]+)\)"
@@ -27,7 +27,7 @@ def add_to_veille(my_conv_df, target_table="Test", logger=setup_logging()):
     # Rename
     # Dictionnary for renaming variables / Right part must correspond to template keywords
     variable_mapping = {
-        "link_text": "Titre_article",
+        "link_text": COL_TITLE,
         "hyperlink": COL_LINK,
         "msg_link": "Quel_chanel",
         "body": "Message",

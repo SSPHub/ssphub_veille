@@ -11,8 +11,7 @@ from src.utils.logging import setup_logging
 from src.utils.config import COL_LINK
 from src.data.complete_veille import build_category_ref_maps
 
-TABLE_RUBRIQUES = "Rubriques"
-COL_CATEGORY = "Categorie"
+from src.utils.config import TABLE_RUBRIQUES, COL_CATEGORY
 
 
 def extract_rows_qmd(
