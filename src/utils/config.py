@@ -18,6 +18,7 @@ COL_PROCESS = "Traitement"
 # label lives in the Rubriques "Category" column.
 TABLE_RUBRIQUES = "Rubriques"
 COL_RUBRIQUE_CATEGORY = "Categories"
+COL_RUBRIQUE_RUBRIQUE = "Rubrique"
 
 REQUEST_TIMEOUT = 15  # seconds, when checking/fetching a link
 MAX_ARTICLE_CHARS = 8000  # how much article text we feed the LLM

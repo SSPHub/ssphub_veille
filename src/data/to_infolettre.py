@@ -11,7 +11,7 @@ from src.utils.logging import setup_logging
 from src.utils.config import COL_LINK
 from src.data.complete_veille import build_category_ref_maps
 
-from src.utils.config import TABLE_RUBRIQUES, COL_CATEGORY, COL_RUBRIQUE_CATEGORY
+from src.utils.config import TABLE_RUBRIQUES, COL_CATEGORY, COL_RUBRIQUE_CATEGORY, COL_RUBRIQUE_RUBRIQUE
 
 
 def extract_rows_qmd(
@@ -114,7 +114,14 @@ def create_veille_qmd(
     added_rows_ids = []
 
     # Fetch rubrique order (tag 1 prevails over tag in 2 ...)
-    groups_ordered = GristApi().fetch_table_pl(table_id=TABLE_RUBRIQUES).unique("Rubrique").select(["Rubrique", "Ordre"]).sort("Ordre")["Rubrique"].to_list()
+    groups_ordered = (
+        GristApi()
+        .fetch_table_pl(table_id=TABLE_RUBRIQUES)
+        .unique(COL_RUBRIQUE_RUBRIQUE)
+        .select([COL_RUBRIQUE_RUBRIQUE, "Ordre"])
+        .sort("Ordre")[COL_RUBRIQUE_RUBRIQUE]
+        .to_list()
+    )
 
     # Process each category group in the right order
     for group in groups_ordered:
@@ -123,7 +130,7 @@ def create_veille_qmd(
             veille_df
             .remove(pl.col("id").is_in(added_rows_ids))
             .filter(
-                pl.any_horizontal(*[pl.col('Categorie').list.contains(keyword) for keyword in keywords])
+                pl.any_horizontal(*[pl.col(COL_CATEGORY).list.contains(keyword) for keyword in keywords])
             )
         )
         if filtered_df.height > 0:
@@ -132,7 +139,7 @@ def create_veille_qmd(
                 titre = row['Titre_article']
                 lien = row[COL_LINK]
                 resume = row['Resume']
-                categories = ", ".join(row['Categorie'])
+                categories = ", ".join(row[COL_CATEGORY])
                 markdown_content += f"- [{titre}]({lien}): {resume}\nCatégories : {categories}\n\n"
                 added_rows_ids = added_rows_ids + [row['id']]
     # Save to file
@@ -155,7 +162,7 @@ def fetch_rubriques(logger=setup_logging()):
     logger.info("Transformation en dictionnaire de catégories")
     rubriques_groups = dict(
         rubriques_df
-        .group_by("Rubrique")
+        .group_by(COL_RUBRIQUE_RUBRIQUE)
         .agg(pl.col(COL_RUBRIQUE_CATEGORY))
         .iter_rows()
     )

@@ -83,9 +83,9 @@ def test_parse_json_answer(raw, expected):
 # --------------------------------------------------------------------------- #
 def test_build_category_ref_maps_and_vocabulary():
     rubriques = [
-        {"id": 1, "Category": "IA", "Rubrique": "Tech"},
-        {"id": 2, "Category": "Stat publique", "Rubrique": "Metier"},
-        {"id": 3, "Category": "fun", "Rubrique": "Divers"},
+        {"id": 1, config.COL_RUBRIQUE_CATEGORY: "IA", config.COL_RUBRIQUE_RUBRIQUE: "Tech"},
+        {"id": 2, config.COL_RUBRIQUE_CATEGORY: "Stat publique", config.COL_RUBRIQUE_RUBRIQUE: "Metier"},
+        {"id": 3, config.COL_RUBRIQUE_CATEGORY: "fun", config.COL_RUBRIQUE_RUBRIQUE: "Divers"},
     ]
     id_to_name, name_to_id = cv.build_category_ref_maps(rubriques)
     assert id_to_name == {1: "IA", 2: "Stat publique", 3: "fun"}
