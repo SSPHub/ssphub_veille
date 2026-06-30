@@ -1,14 +1,15 @@
 # ssphub_veille
 
 Tooling to build the **SSPHub veille** (the curated watch that feeds the
-[newsletter](https://ssphub.netlify.app/infolettre/)). It is a two-stage
+[newsletter](https://ssphub.netlify.app/infolettre/)). It is a three-stage
 pipeline around a Grist *Veille* table:
 
 1. **Extract** - read a Tchap conversation export and add the article links it
-   contains as new rows in the Grist table.
+   contains as new rows in the Grist table (links already present are skipped).
 2. **Complete the table** - for each row, use an LLM to fill in the article **title**, a
    short **summary** and one or more **categories**.
-3. **Complete as QMD file** - Extract rows "A garder" and format them as a qmd file for newsletter
+3. **Export to the newsletter** - once articles have been reviewed and flagged to
+   keep, export the selected rows as a QMD file for the newsletter.
 
 All the stages are driven from a single command-line tool, `veille.py`, and are
 meant to run on [SSPCloud / Onyxia](https://datalab.sspcloud.fr/).
@@ -149,6 +150,29 @@ uv run veille.py complete -t Veille                   # then the rest
 | `--dry-run` | Completion step only: log the updates but do not write them to Grist. In `extract-and-complete`, extraction still writes the new rows. |
 | `--n-examples N` | Number of example category assignments sent to the LLM (default 15). |
 
+## Step 3 — Export the selected articles to the newsletter
+
+After the table is completed, review the rows in Grist and tick the ones worth
+keeping. Then export them as a QMD file ready for the newsletter:
+
+```bash
+uv run veille.py to-infolettre -t Veille            # -> veille.qmd
+uv run veille.py to-infolettre -t Veille -o jan.qmd # custom output name
+```
+
+This selects rows where `A_garder` is true and `Lien_veille` is still empty
+(i.e. kept, but not yet published), de-references each row's `Categorie` ids back
+into category labels (dropping the leading `"L"` Reference-List marker), then
+groups the entries by their `Rubrique` and writes them in the order given by the
+`Ordre` column of the `Rubriques` table.
+
+### `to-infolettre` options
+
+| Option | Effect |
+| --- | --- |
+| `-t, --table` | Grist table id to read (default `Test`). |
+| `-o, --output` | Name of the QMD file to write (default `veille.qmd`). |
+
 ## How completion works, row by row
 
 1. **Duplicates** (`Doublon_lien > 1`) are skipped and noted in `Traitement`.
@@ -179,7 +203,8 @@ uv run veille.py complete -t Veille                   # then the rest
 Rubriques row ids, not labels. The tool reads `Rubriques` to translate ids into
 real category names for the LLM, and translates the LLM's chosen names back into
 row ids when writing (names absent from `Rubriques` are dropped). The `Rubriques`
-table has a `Category` column (the label) and a `Rubrique` column (its grouping).
+table has a `Categories` column (the label), a `Rubrique` column (its grouping)
+and an `Ordre` column (the order the groups appear in the newsletter).
 
 When a page is fetched successfully the LLM results **overwrite** the three
 columns; the fallback only fills empty cells. The column/table names
@@ -194,13 +219,11 @@ columns; the fallback only fills empty cells. The column/table names
 
 # Notes
 
-## Notes
-
 - Links on sites that block scrapers or serve JavaScript-only pages (x.com,
   reddit, LinkedIn, YouTube, some news sites) fail the link check. Such rows
   fall back to their existing text for categorisation, or end up as
   `NO WORKING LINK FOUND` if they have no text.
-- The category vocabulary is the `Category` column of the `Rubriques` table.
+- The category vocabulary is the `Categories` column of the `Rubriques` table.
   `??` is the reserved "unknown / unsure" category — add it as a row in
   `Rubriques` if you want the tool to be able to assign it.
 
@@ -234,24 +257,26 @@ If the second response is `<Response [302]>`, the redirect problem is present.
 
 ```text
 ssphub_veille/
-├── veille.py                        # CLI entry point: `extract`, `complete`, `extract-and-complete`
+├── veille.py                        # CLI entry point: extract, complete, extract-and-complete, to-infolettre
 ├── pyproject.toml                   # project metadata, dependencies, pytest config
 ├── uv.lock                          # locked dependency versions (uv)
 ├── .python-version                  # pinned Python version
 ├── README.md                        # this file
 ├── src/                             # Python package
 │   ├── extract.py                   # EXTRACT stage: clean a Tchap export, add new rows to Grist
-│   ├── complete_table               # COMPLETE stage: complete a Grist table with LLM
-│   ├── complete_qmd                 # COMPLETE stage: from a completed and reviewd Grist table, create a qmd
-│   ├── data/                        # data shaping + the completion stage
+│   ├── complete_table.py            # COMPLETE stage: orchestrate the LLM completion of a Grist table
+│   ├── complete_qmd.py              # EXPORT stage: from a reviewed Grist table, build the newsletter QMD
+│   ├── data/                        # data shaping + the stage internals
 │   │   ├── clean_conv.py            # parse the Tchap json export into a table of links
 │   │   ├── formatting_link.py       # pull link text/url out of Markdown & HTML
 │   │   ├── formatting_time.py       # Tchap Unix timestamp -> readable date
-│   │   └── complete_veille.py       # COMPLETE stage: pick rows, resolve link, call LLM, write back
+│   │   ├── complete_veille.py       # COMPLETE internals: pick rows, resolve link, call LLM, write back
+│   │   └── to_infolettre.py         # EXPORT internals: group kept rows by Rubrique, render the QMD
 │   ├── utils/                       # shared helpers
 │   │   ├── access_grist_api.py      # GristApi: read/add/update Grist records & columns
 │   │   ├── llm_client.py            # OpenAI-compatible client for the SSP Cloud LLM lab
-│   │   └── logging.py               # setup_logging() helper
+│   │   ├── logging.py               # setup_logging() helper
+│   │   └── config.py                # column/table names + tunables (timeouts, model defaults, regexes)
 │   └── test/                        # tests
 │       ├── test_complete_veille.py  # pytest unit tests for completion (mocked, no creds)
 │       ├── test_realdata.py         # pytest integration tests on the live Grist Test table
