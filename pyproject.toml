@@ -17,7 +17,7 @@ dependencies = [
 
 [tool.pytest.ini_options]
 # Put the repo root on sys.path so tests under src/test/ can do absolute
-# imports like `import src.complete` when run via `uv run pytest`.
+# imports like `import src.complete_table` when run via `uv run pytest`.
 pythonpath = ["."]
 testpaths = ["src/test"]
 # test_all.py holds manual smoke checks that write to the live Grist Test table
