@@ -263,7 +263,7 @@ ssphub_veille/
 ├── .python-version                  # pinned Python version
 ├── README.md                        # this file
 ├── src/                             # Python package
-│   ├── veille_function.py           # EXTRACT stage: clean a Tchap export, add new rows to Grist
+│   ├── extract.py                   # EXTRACT stage: clean a Tchap export, add new rows to Grist
 │   ├── data/                        # data shaping + the completion stage
 │   │   ├── clean_conv.py            # parse the Tchap json export into a table of links
 │   │   ├── formatting_link.py       # pull link text/url out of Markdown & HTML

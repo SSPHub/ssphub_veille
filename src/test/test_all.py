@@ -1,5 +1,5 @@
 from src.utils.access_grist_api import GristApi
-from src.veille_function import extract_and_add_to_veille
+from src.extract import extract_and_add_to_veille
 
 
 def test_():

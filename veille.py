@@ -58,7 +58,7 @@ def _add_output_arg(parser):
 # --------------------------------------------------------------------------- #
 def cmd_extract(args):
     """Extract links from a Tchap export and add new rows to the Grist table."""
-    from src.veille_function import extract_and_add_to_veille
+    from src.extract import extract_and_add_to_veille
 
     extract_and_add_to_veille(input_conv_file_path=args.file, target_table=args.table)
 
@@ -77,7 +77,7 @@ def cmd_complete(args):
 
 def cmd_extract_and_complete(args):
     """Extract from a Tchap export, then complete the (new) rows in one go."""
-    from src.veille_function import extract_and_add_to_veille
+    from src.extract import extract_and_add_to_veille
     from src.data.complete_veille import complete_veille
 
     extract_and_add_to_veille(input_conv_file_path=args.file, target_table=args.table)
