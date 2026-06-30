@@ -58,13 +58,25 @@ def rows():
 
 
 @pytest.fixture(scope="module")
-def vocab(rows):
-    return cv.category_vocabulary(rows)
+def ref_maps():
+    """Fetch the Rubriques table and build the id<->name category lookups."""
+    try:
+        rubriques = cv.GristApi().fetch_table_pl(cv.TABLE_RUBRIQUES).to_dicts()
+    except Exception as exc:
+        pytest.skip(f"could not fetch the '{cv.TABLE_RUBRIQUES}' table from Grist: {exc}")
+    return cv.build_category_ref_maps(rubriques)  # (id_to_name, name_to_id)
 
 
 @pytest.fixture(scope="module")
-def examples(rows):
-    return cv.build_category_examples(rows, n=15)
+def vocab(ref_maps):
+    id_to_name, _ = ref_maps
+    return cv.category_vocabulary(id_to_name)
+
+
+@pytest.fixture(scope="module")
+def examples(rows, ref_maps):
+    id_to_name, _ = ref_maps
+    return cv.build_category_examples(rows, id_to_name, n=15)
 
 
 def test_rows_have_ids(rows):
@@ -77,20 +89,27 @@ def test_vocabulary_and_examples(vocab, examples):
     assert all("contenu" in e and "categorie" in e for e in examples)
 
 
-def test_process_all_rows_without_crashing(rows, vocab, examples):
+def test_process_all_rows_without_crashing(rows, ref_maps, vocab, examples):
     """Every real row yields a valid PATCH payload and nothing raises."""
-    fake_llm = {"titre": "T", "resume": "R", "categories": ["IA"]}
+    id_to_name, name_to_id = ref_maps
+    fake_llm = {"titre": "T", "resume": "R", "categories": [vocab[0]] if vocab else []}
     with mock.patch.object(cv, "fetch_if_working", return_value="<title>T</title><body>x</body>"), \
          mock.patch.object(cv, "ask_json", return_value=fake_llm):
         for r in rows:
-            fields = cv.process_row(r, vocab, examples, mock.Mock())
+            fields = cv.process_row(r, vocab, examples, mock.Mock(), id_to_name, name_to_id)
             assert cv.COL_PROCESS in fields
             assert "id" not in fields  # the row id is carried separately, not in fields
 
 
-def test_fallback_categorises_unscrapeable_rows(rows, vocab, examples):
+def test_fallback_categorises_unscrapeable_rows(rows, ref_maps, vocab, examples):
     """Rows on bot-blocking hosts that lack a category but carry text should be
-    categorised via the fallback, without overwriting their existing title."""
+    categorised via the fallback (as Rubriques ids), without overwriting titles."""
+    id_to_name, name_to_id = ref_maps
+    if not vocab:
+        pytest.skip("the Rubriques table is empty")
+    a_category = vocab[0]
+    expected_ref = ["L", name_to_id[a_category]]
+
     blocked_hosts = ("x.com", "twitter", "reddit", "linkedin", "youtu", "youtube")
 
     def is_blocked(url):
@@ -99,7 +118,7 @@ def test_fallback_categorises_unscrapeable_rows(rows, vocab, examples):
     targets = [
         r for r in rows
         if is_blocked(r.get("Lien_article"))
-        and not cv.normalise_categories(r.get("Categorie"))
+        and not cv.normalise_categories(r.get("Categorie"), id_to_name)
         and cv.fallback_text(r)
     ]
     if not targets:
@@ -109,11 +128,12 @@ def test_fallback_categorises_unscrapeable_rows(rows, vocab, examples):
         return None if is_blocked(url) else "<title>T</title><body>x</body>"
 
     with mock.patch.object(cv, "fetch_if_working", side_effect=fake_fetch), \
-         mock.patch.object(cv, "ask_json", return_value={"titre": "", "resume": "", "categories": ["IA"]}):
+         mock.patch.object(cv, "ask_json",
+                           return_value={"titre": "", "resume": "", "categories": [a_category]}):
         for r in targets:
-            fields = cv.process_row(r, vocab, examples, mock.Mock())
+            fields = cv.process_row(r, vocab, examples, mock.Mock(), id_to_name, name_to_id)
             assert "NO WORKING LINK" not in fields[cv.COL_PROCESS]
-            assert fields[cv.COL_CATEGORY] == ["L", "IA"]
+            assert fields[cv.COL_CATEGORY] == expected_ref  # written as Rubriques ids
             if cv.clean_text(r.get("Titre_article")):
                 assert cv.COL_TITLE not in fields  # existing title preserved
 

@@ -47,6 +47,12 @@ def _add_complete_args(parser):
     )
 
 
+def _add_output_arg(parser):
+    parser.add_argument(
+        "-o", "--output", default="veille.qmd",
+        help="Name of the QMD output file (default: veille.qmd).",
+    )
+
 # --------------------------------------------------------------------------- #
 # Subcommand handlers
 # --------------------------------------------------------------------------- #
@@ -83,6 +89,13 @@ def cmd_extract_and_complete(args):
     )
 
 
+def cmd_to_infolettre(args):
+    """Extract selected links from Grist and create qmd infolettre."""
+    from src.data.to_infolettre import extract_rows_qmd
+
+    extract_rows_qmd(input_table=args.table, output_path=args.output)
+
+
 # --------------------------------------------------------------------------- #
 # Parser
 # --------------------------------------------------------------------------- #
@@ -117,7 +130,19 @@ def build_parser() -> argparse.ArgumentParser:
     _add_file_arg(pa)
     _add_table_arg(pa)
     _add_complete_args(pa)
+
     pa.set_defaults(func=cmd_extract_and_complete)
+
+    # ----- to_infolettre -----
+    pto = sub.add_parser(
+        "to_infolettre",
+        help="Extract from Grist selected articles and import them into a qmd file",
+        description="Runs `extract_rows_qmd`",
+    )
+    _add_table_arg(pto)
+    _add_output_arg(pto)
+
+    pto.set_defaults(func=cmd_to_infolettre)
 
     return parser
 
