@@ -12,7 +12,7 @@ class GristApi:
         # does. This keeps imports (and test collection) working without secrets.
         if doc_id is None:
             doc_id = os.environ["GRIST_VEILLE_DOC_ID"]
-        if "GRIST_SERVICE_ACCOUNT_VEILLE_KEY" in os.environ:
+        if os.environ.get("GRIST_SERVICE_ACCOUNT_VEILLE_KEY"):
             token = os.environ.get("GRIST_SERVICE_ACCOUNT_VEILLE_KEY", "")
         else:
             warnings.warn(

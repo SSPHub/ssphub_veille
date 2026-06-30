@@ -1,4 +1,5 @@
-from datetime import datetime, timedelta
+from datetime import datetime
+from src.utils.config import PARIS_TZ
 
 
 def convert_unix_time(time_as_int):
@@ -22,5 +23,5 @@ def convert_unix_time(time_as_int):
     if time_as_int >= 1e12:
         time_as_int = time_as_int / 1000
 
-    time = datetime.fromtimestamp(time_as_int) + timedelta(hours=+2)
+    time = datetime.fromtimestamp(time_as_int, PARIS_TZ)
     return time.strftime("%Y-%m-%d %H:%M")
