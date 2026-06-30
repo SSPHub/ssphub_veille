@@ -134,9 +134,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     pa.set_defaults(func=cmd_extract_and_complete)
 
-    # ----- to_infolettre -----
+    # ----- to-infolettre -----
     pto = sub.add_parser(
-        "to_infolettre",
+        "to-infolettre",
         help="Extract from Grist selected articles and format them as qmd file",
         description="Runs `extract_rows_qmd`",
     )
