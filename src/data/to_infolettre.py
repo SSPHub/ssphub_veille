@@ -11,7 +11,7 @@ from src.utils.logging import setup_logging
 from src.utils.config import COL_LINK
 from src.data.complete_veille import build_category_ref_maps
 
-from src.utils.config import TABLE_RUBRIQUES, COL_CATEGORY
+from src.utils.config import TABLE_RUBRIQUES, COL_CATEGORY, COL_RUBRIQUE_CATEGORY
 
 
 def extract_rows_qmd(
@@ -156,7 +156,7 @@ def fetch_rubriques(logger=setup_logging()):
     rubriques_groups = dict(
         rubriques_df
         .group_by("Rubrique")
-        .agg(pl.col("Categories"))
+        .agg(pl.col(COL_RUBRIQUE_CATEGORY))
         .iter_rows()
     )
 
