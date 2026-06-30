@@ -92,7 +92,7 @@ def cmd_extract_and_complete(args):
 
 def cmd_to_infolettre(args):
     """Extract selected links from Grist and create qmd infolettre."""
-    from src.data.to_infolettre import extract_rows_qmd
+    from src.complete_qmd import extract_rows_qmd
 
     extract_rows_qmd(input_table=args.table, output_path=args.output)
 
@@ -137,7 +137,7 @@ def build_parser() -> argparse.ArgumentParser:
     # ----- to_infolettre -----
     pto = sub.add_parser(
         "to_infolettre",
-        help="Extract from Grist selected articles and import them into a qmd file",
+        help="Extract from Grist selected articles and format them as qmd file",
         description="Runs `extract_rows_qmd`",
     )
     _add_table_arg(pto)
