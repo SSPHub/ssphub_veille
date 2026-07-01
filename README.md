@@ -6,7 +6,7 @@ pipeline around a Grist *Veille* table:
 
 1. **Extract** - read a Tchap conversation export and add the article links it
    contains as new rows in the Grist table (links already present are skipped).
-2. **Complete the table** - for each row, use an LLM to fill in the article **title**, a
+2. **Complete the table** - for each row, fetch the html page, use an LLM to fill in the article **title**, a
    short **summary** and one or more **categories**.
 3. **Export to the newsletter** - once articles have been reviewed and flagged to
    keep, export the selected rows as a QMD file for the newsletter.
