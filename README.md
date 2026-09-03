@@ -2,7 +2,7 @@
 
 Tooling to build the **SSPHub veille** (the curated watch that feeds the
 [newsletter](https://ssphub.netlify.app/infolettre/)). It is a three-stage
-pipeline around a Grist *Veille* table:
+pipeline around a Grist _Veille_ table:
 
 1. **Extract** - read a Tchap conversation export and add the article links it
    contains as new rows in the Grist table (links already present are skipped).
@@ -14,28 +14,28 @@ pipeline around a Grist *Veille* table:
 All the stages are driven from a single command-line tool, `veille.py`, and are
 meant to run on [SSPCloud / Onyxia](https://datalab.sspcloud.fr/).
 
-Des assistants d'IA ont été utilisés pour ce repo. 
+Des assistants d'IA ont été utilisés pour ce repo.
 
 ## Pipeline at a glance
 
 ```
  Tchap conversation                       Grist "Veille" table                   Grist "Veille" table                      Export as a formatted
-   (export.json)   ──[ extract ]──▶   + new rows (link, date)  ──[ complete ]──▶  title, summary,  ──[ to-infolettre ]──▶ QMD file with 
+   (export.json)   ──[ extract ]──▶   + new rows (link, date)  ──[ complete ]──▶  title, summary,  ──[ to-infolettre ]──▶ QMD file with
                                        Traitement = empty                          category filled                          Resume, lien ...
 ```
 
-| Command | What it does |
-| --- | --- |
-| `uv run veille.py extract` | Tchap export → new rows in Grist (links only). |
-| `uv run veille.py complete` | Fill title/summary/category on rows whose `Traitement` is empty. |
-| `uv run veille.py extract-and-complete` | Run both, in order, on the same table. |
-| `uv run veille.py to-infolettre` | Once articles are selected, format them as a QMD file. |
+| Command                                 | What it does                                                     |
+| --------------------------------------- | ---------------------------------------------------------------- |
+| `uv run veille.py extract`              | Tchap export → new rows in Grist (links only).                   |
+| `uv run veille.py complete`             | Fill title/summary/category on rows whose `Traitement` is empty. |
+| `uv run veille.py extract-and-complete` | Run both, in order, on the same table.                           |
+| `uv run veille.py to-infolettre`        | Once articles are selected, format them as a QMD file.           |
 
 ## Prerequisites
 
 - An account on [SSPCloud's datalab](https://datalab.sspcloud.fr/).
 - A Grist account on <https://grist.numerique.gouv.fr/> with **edit rights** on
-  the SSPHub *Veille* document.
+  the SSPHub _Veille_ document.
 - For the completion stage, an **LLM lab API key**
   (<https://llm.lab.sspcloud.fr/api>).
 
@@ -44,7 +44,7 @@ Des assistants d'IA ont été utilisés pour ce repo.
 ### 1. Get access to SSPHub's Grist
 
 Ask an admin of the SSPHub organization in Grist to grant you edit rights on the
-*Veille* document. With the rights, you will see the organization in Grist:
+_Veille_ document. With the rights, you will see the organization in Grist:
 
 ![Access to SSPHub's Grist](docs/grist_ssphub.png)
 
@@ -75,19 +75,19 @@ is only needed for `complete` / `extract-and-complete`.
 
 The tool reads the following environment variables:
 
-| Variable | Used by | Notes |
-| --- | --- | --- |
-| `GRIST_VEILLE_DOC_ID` | both | Id of the Grist *Veille* document (step 1). |
-| `GRIST_SERVICE_ACCOUNT_VEILLE_KEY` | both | Service-account key for that document. Preferred. |
-| `GRIST_API_KEY` | both | Personal Grist key — used only if the service-account key is absent. |
-| `LLM_LAB_API_KEY` | completion | Key for the LLM lab. |
-| `LLM_LAB_ENDPOINT` | completion | Optional. Default `https://llm.lab.sspcloud.fr/api`. |
-| `LLM_MODEL_NAME` | completion | Optional. Default `gemma4-26b-moe`. |
+| Variable                           | Used by    | Notes                                                                |
+| ---------------------------------- | ---------- | -------------------------------------------------------------------- |
+| `GRIST_VEILLE_DOC_ID`              | both       | Id of the Grist _Veille_ document (step 1).                          |
+| `GRIST_SERVICE_ACCOUNT_VEILLE_KEY` | both       | Service-account key for that document. Preferred.                    |
+| `GRIST_API_KEY`                    | both       | Personal Grist key — used only if the service-account key is absent. |
+| `LLM_LAB_API_KEY`                  | completion | Key for the LLM lab.                                                 |
+| `LLM_LAB_ENDPOINT`                 | completion | Optional. Default `https://llm.lab.sspcloud.fr/api`.                 |
+| `LLM_MODEL_NAME`                   | completion | Optional. Default `gemma4-26b-moe`.                                  |
 
 For Grist auth the tool looks for `GRIST_SERVICE_ACCOUNT_VEILLE_KEY` first and
 falls back to `GRIST_API_KEY`.
 
-In Onyxia, add them under *Mes secrets → Nouveau secret*:
+In Onyxia, add them under _Mes secrets → Nouveau secret_:
 
 ![Select my secrets](docs/onyxia_secrets.png)
 
@@ -107,7 +107,7 @@ this repository inside it.
 ## Step 1 — Export the Tchap conversation
 
 - Open the discussion in Tchap and click its name (top of the window).
-- In the right-hand panel choose *Export conversation* with:
+- In the right-hand panel choose _Export conversation_ with:
   - format: **json**;
   - number of messages: 500 is plenty (10 000 messages ≈ 3 years ≈ 3 MB);
   - max size: 3 MB.
@@ -115,12 +115,24 @@ this repository inside it.
 
 ## Step 2 — Run the pipeline
 
-The simplest path runs both stages at once:
+1. The simplest path runs both stages at once:
 
 ```bash
 cd ssphub_veille
 uv run veille.py extract-and-complete -t Veille
 ```
+
+2. Then you need to manually review the rows of the Veille table :
+
+- Remove any personnal information or unrelated discussion of the column Tchap messages (grey columns);
+- check the resume of the article;
+- if necessary, review the article and link;
+- update categories;
+- select the articles to keep in the newsletter.
+
+3. When you're ready, you can run the step 3 to generate a first consolidated draft of articles.
+
+### Details
 
 You can also run the stages separately, which is useful while iterating:
 
@@ -142,35 +154,33 @@ uv run veille.py complete -t Veille                   # then the rest
 
 ### `complete` / `extract-and-complete` options
 
-| Option | Effect |
-| --- | --- |
-| `-f, --file` | Tchap json export to read (default `export.json`). *extract stages only* |
-| `-t, --table` | Grist table id (default `Test`). |
-| `--limit N` | Process at most N rows (handy for a first run / testing). |
-| `--dry-run` | Completion step only: log the updates but do not write them to Grist. In `extract-and-complete`, extraction still writes the new rows. |
-| `--n-examples N` | Number of example category assignments sent to the LLM (default 15). |
+| Option           | Effect                                                                                                                                 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `-f, --file`     | Tchap json export to read (default `export.json`). _extract stages only_                                                               |
+| `-t, --table`    | Grist table id (default `Test`).                                                                                                       |
+| `--limit N`      | Process at most N rows (handy for a first run / testing).                                                                              |
+| `--dry-run`      | Completion step only: log the updates but do not write them to Grist. In `extract-and-complete`, extraction still writes the new rows. |
+| `--n-examples N` | Number of example category assignments sent to the LLM (default 15).                                                                   |
 
 ## Step 3 — Export the selected articles to the newsletter
 
-After the table is completed, review the rows in Grist and tick the ones worth
-keeping. Then export them as a QMD file ready for the newsletter:
+Once you're finished reviewing the rows, export them as a QMD file ready for the newsletter:
 
 ```bash
-uv run veille.py to-infolettre -t Veille            # -> veille.qmd
+uv run veille.py to-infolettre -t Veille            # -> produces a veille.qmd file
 uv run veille.py to-infolettre -t Veille -o jan.qmd # custom output name
 ```
 
 This selects rows where `A_garder` is true and `Lien_veille` is still empty
-(i.e. kept, but not yet published), de-references each row's `Categorie` ids back
-into category labels (dropping the leading `"L"` Reference-List marker), then
+(i.e. kept, but not yet published), then
 groups the entries by their `Rubrique` and writes them in the order given by the
 `Ordre` column of the `Rubriques` table.
 
 ### `to-infolettre` options
 
-| Option | Effect |
-| --- | --- |
-| `-t, --table` | Grist table id to read (default `Test`). |
+| Option         | Effect                                                |
+| -------------- | ----------------------------------------------------- |
+| `-t, --table`  | Grist table id to read (default `Test`).              |
 | `-o, --output` | Name of the QMD file to write (default `veille.qmd`). |
 
 ## How completion works, row by row
@@ -214,7 +224,7 @@ columns; the fallback only fills empty cells. The column/table names
 
 > **One-time Grist check.** `Traitement` must be a **data** column (type Text),
 > not a formula column — Grist refuses API writes to formula columns. The tool
-> detects this and stops with a clear message *before* spending any LLM calls.
+> detects this and stops with a clear message _before_ spending any LLM calls.
 > `Doublon_lien` is expected to stay a formula column; it is only read.
 
 # Notes
@@ -226,7 +236,6 @@ columns; the fallback only fills empty cells. The column/table names
 - The category vocabulary is the `Categories` column of the `Rubriques` table.
   `??` is the reserved "unknown / unsure" category — add it as a row in
   `Rubriques` if you want the tool to be able to assign it.
-
 
 ## Troubleshooting
 
@@ -292,15 +301,14 @@ The function-level call graph (regenerate with `bash docs/graphs.sh`):
 
 ![Overview of the functions (excluding tests)](docs/call_graph_all_but_test.png)
 
-
 ## Tests
 
 Automated tests live in `src/test/` and run with **pytest**:
 
-| File | What it covers | Needs |
-| --- | --- | --- |
-| `test_complete_veille.py` | Unit tests for the completion logic — duplicate handling, link resolution, Rubriques reference encoding (ids ↔ names), the unreachable-link fallback and the formula-column pre-flight. Network and LLM are mocked. | nothing |
-| `test_realdata.py` | Integration tests against the live Grist `Test` table: read-only invariant checks, plus one write round-trip that PATCHes a sentinel into a row's `Traitement` and restores it. | Grist secrets + network |
+| File                      | What it covers                                                                                                                                                                                                      | Needs                   |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| `test_complete_veille.py` | Unit tests for the completion logic — duplicate handling, link resolution, Rubriques reference encoding (ids ↔ names), the unreachable-link fallback and the formula-column pre-flight. Network and LLM are mocked. | nothing                 |
+| `test_realdata.py`        | Integration tests against the live Grist `Test` table: read-only invariant checks, plus one write round-trip that PATCHes a sentinel into a row's `Traitement` and restores it.                                     | Grist secrets + network |
 
 ```bash
 uv run pytest                              # the whole suite
