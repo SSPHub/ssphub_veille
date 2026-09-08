@@ -42,3 +42,4 @@ def add_commit(file, repo, infolettre_branch):
     message = f"Add veille to {infolettre_branch}"
     subprocess.run(["git", "add", file], cwd=f"../{repo}", check=True)
     subprocess.run(["git", "commit", "-m", message], cwd=f"../{repo}", check=True)
+    subprocess.run(["git", "push"], cwd=f"../{repo}", check=True)
