@@ -176,10 +176,11 @@ This selects rows where `A_garder` is true and `Lien_veille` is still empty
 groups the entries by their `Rubrique` and writes them in the order given by the
 `Ordre` column of the `Rubriques` table.
 
-It then get the branches of the `ssphub` repo, get the newsletter branch's name,
-fetch it, append the veille.qmd file at the end of the newsletter file and push it.
+**MAKE SURE THE REMOTE BRANCH IS UP TO DATE WITH YOUR WORK BEFORE RUNNING THE NEXT STEP**
 
-**MAKE SURE THE REMOTE BRANCH IS UP TO DATE WITH YOUR WORK BEFORE DOING THIS STEP**
+It then gets the branches of the [`ssphub`](https://github.com/inseefrlab/ssphub) repo, gets the newsletter branch's name,
+fetches it, appends the veille.qmd file at the end of the newsletter file and pushes it.
+
 
 ### `to-infolettre` options
 
