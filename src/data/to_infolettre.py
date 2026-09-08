@@ -1,21 +1,19 @@
 """
-Once the data has been filled, extract all the "a_garder" and format them in 
+Once the data has been filled, extract all the "a_garder" and format them in
 markdown format for easier writing.
 """
-
 
 import polars as pl
 
 from src.utils.access_grist_api import GristApi
-from src.utils.logging import setup_logging
-from src.utils.config import COL_LINK
-
 from src.utils.config import (
-    TABLE_RUBRIQUES,
     COL_CATEGORY,
+    COL_LINK,
     COL_RUBRIQUE_CATEGORY,
-    COL_RUBRIQUE_RUBRIQUE
+    COL_RUBRIQUE_RUBRIQUE,
+    TABLE_RUBRIQUES,
 )
+from src.utils.logging import setup_logging
 
 
 def create_veille_qmd(
@@ -24,7 +22,7 @@ def create_veille_qmd(
     logger=setup_logging(),
 ):
     """
-    Summarise all the rows of a Polars dataframe to the following format: 
+    Summarise all the rows of a Polars dataframe to the following format:
     ## IA : [tags according to Rubriques table]
     - [Titre_article](lien_article): Resume
     Catégories: categories
@@ -68,22 +66,22 @@ def create_veille_qmd(
     # Process each category group in the right order
     for group in groups_ordered:
         keywords = rubriques_groups[group]
-        filtered_df = (
-            veille_df
-            .remove(pl.col("id").is_in(added_rows_ids))
-            .filter(
-                pl.any_horizontal(*[pl.col(COL_CATEGORY).list.contains(keyword) for keyword in keywords])
+        filtered_df = veille_df.remove(pl.col("id").is_in(added_rows_ids)).filter(
+            pl.any_horizontal(
+                *[pl.col(COL_CATEGORY).list.contains(keyword) for keyword in keywords]
             )
         )
         if filtered_df.height > 0:
             markdown_content += f"## {group} :\n"
             for row in filtered_df.iter_rows(named=True):
-                titre = row['Titre_article']
+                titre = row["Titre_article"]
                 lien = row[COL_LINK]
-                resume = row['Resume']
+                resume = row["Resume"]
                 categories = ", ".join(row[COL_CATEGORY])
-                markdown_content += f"- [{titre}]({lien}): {resume}\nCatégories : {categories}\n\n"
-                added_rows_ids = added_rows_ids + [row['id']]
+                markdown_content += (
+                    f"- [{titre}]({lien}): {resume}\nCatégories : {categories}\n\n"
+                )
+                added_rows_ids = added_rows_ids + [row["id"]]
     # Save to file
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(markdown_content)
@@ -95,7 +93,7 @@ def fetch_rubriques(logger=setup_logging()):
     """
     To fetch categories from the Rubrique table and send it back as a dictionnary 'Rubrique' : [list of categories]
 
-    Args : 
+    Args :
 
     """
     logger.info(f"Récupération des catégories de la table {TABLE_RUBRIQUES}")
@@ -103,10 +101,35 @@ def fetch_rubriques(logger=setup_logging()):
 
     logger.info("Transformation en dictionnaire de catégories")
     rubriques_groups = dict(
-        rubriques_df
-        .group_by(COL_RUBRIQUE_RUBRIQUE)
+        rubriques_df.group_by(COL_RUBRIQUE_RUBRIQUE)
         .agg(pl.col(COL_RUBRIQUE_CATEGORY))
         .iter_rows()
     )
 
     return rubriques_groups
+
+
+def concatenate_infolettre(
+    file_to_append, infolettre_file_name="index.qmd", logger=setup_logging()
+):
+    """
+    To append a text file at the end of another text file
+    Args :
+
+    """
+    logger.info(f"Ajout de {file_to_append} à la fin de {infolettre_file_name}")
+
+    with (
+        open(file_to_append, "r") as infile,
+        open(infolettre_file_name, "a") as outfile,
+    ):
+        outfile.write(infile.read())
+
+    logger.info(f"{file_to_append} a été ajouté à la fin de {infolettre_file_name}")
+
+    with open(infolettre_file_name, "r") as file:
+        concatenated_content = file.read()
+
+    logger.info(f"Le contenu est {concatenated_content}")
+
+    return concatenated_content
