@@ -164,10 +164,10 @@ uv run veille.py complete -t Veille                   # then the rest
 
 ## Step 3 — Export the selected articles to the newsletter
 
-Once you're finished reviewing the rows, export them as a QMD file ready for the newsletter:
+Once you're finished reviewing the rows, you can append them to the QMD file of the newsletter:
 
 ```bash
-uv run veille.py to-infolettre -t Veille            # -> produces a veille.qmd file
+uv run veille.py to-infolettre -t Veille            # -> produces a veille.qmd file and appends it to the newsletter
 uv run veille.py to-infolettre -t Veille -o jan.qmd # custom output name
 ```
 
@@ -176,12 +176,17 @@ This selects rows where `A_garder` is true and `Lien_veille` is still empty
 groups the entries by their `Rubrique` and writes them in the order given by the
 `Ordre` column of the `Rubriques` table.
 
+It then get the branches of the `ssphub` repo, get the newsletter branch's name,
+fetch it, append the veille.qmd file at the end of the newsletter file and push it.
+
+**MAKE SURE THE REMOTE BRANCH IS UP TO DATE WITH YOUR WORK BEFORE DOING THIS STEP**
+
 ### `to-infolettre` options
 
-| Option         | Effect                                                |
-| -------------- | ----------------------------------------------------- |
-| `-t, --table`  | Grist table id to read (default `Test`).              |
-| `-o, --output` | Name of the QMD file to write (default `veille.qmd`). |
+| Option         | Effect                                                        |
+| -------------- | ------------------------------------------------------------- |
+| `-t, --table`  | Grist table id to read (default `Test`).                      |
+| `-o, --output` | Name of the interim QMD file to write (default `veille.qmd`). |
 
 ## How completion works, row by row
 
