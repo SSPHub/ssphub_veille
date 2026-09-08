@@ -82,10 +82,21 @@ def append_commit(
         extract_branch_infolettre(list_remote_branches(repo))
     )
     clone_branch(repo, infolettre_branch)
+    infolettre_file_name = f"infolettre/{infolettre_branch}/index.qmd"
     concatenate_infolettre(
         output_path,
-        infolettre_file_name=f"../{folder_repo}/infolettre/{infolettre_branch}/index.qmd",
+        infolettre_file_name=f"../{folder_repo}/{infolettre_file_name}",
         logger=setup_logging(),
     )
 
-    add_commit(output_path, repo, infolettre_branch)
+    add_commit(infolettre_file_name, folder_repo, infolettre_branch)
+
+
+def extract_append_commit(
+    input_table="Veille",
+    output_path="veille.qmd",
+    logger=setup_logging(),
+):
+
+    extract_rows_qmd(input_table=input_table, output_path=output_path, logger=logger)
+    append_commit(output_path=output_path, repo="https://github.com/inseefrlab/ssphub")
