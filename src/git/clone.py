@@ -1,4 +1,3 @@
-import os
 import re
 import subprocess
 
@@ -21,11 +20,11 @@ def list_branches(repo_dir="."):
     return result.stdout.split()
 
 
-def max_infolettre(folder="infolettre"):
+def max_infolettre(branch_list):
     """Return the highest N among subfolders named infolettre_N."""
     max_num = 0
-    for name in os.listdir(folder):
-        match = re.fullmatch(r"infolettre_(\d+)", name)
+    for branch in branch_list:
+        match = re.fullmatch(r"infolettre_(\d+)", branch)
         if match:
             num = int(match.group(1))
             max_num = max(max_num, num)
