@@ -109,11 +109,27 @@ def fetch_rubriques(logger=setup_logging()):
     return rubriques_groups
 
 
-def concatenate_infolettre(file_to_append, infolettre_file_name="index.qmd"):
+def concatenate_infolettre(
+    file_to_append, infolettre_file_name="index.qmd", logger=setup_logging()
+):
+    """
+    To append a text file at the end of another text file
+    Args :
+
+    """
+    logger.info(f"Ajout de {file_to_append} à la fin de {infolettre_file_name}")
+
     with (
         open(file_to_append, "r") as infile,
         open(infolettre_file_name, "a") as outfile,
     ):
         outfile.write(infile.read())
+
+    logger.info(f"{file_to_append} a été ajouté à la fin de {infolettre_file_name}")
+
     with open(infolettre_file_name, "r") as file:
-        return file.read()
+        concatenated_content = file.read()
+
+    logger.info(f"Le contenu est {concatenated_content}")
+
+    return concatenated_content
