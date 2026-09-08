@@ -19,37 +19,48 @@ import argparse
 # --------------------------------------------------------------------------- #
 def _add_file_arg(parser):
     parser.add_argument(
-        "-f", "--file", default="export.json",
+        "-f",
+        "--file",
+        default="export.json",
         help="Tchap json export to read (default: export.json).",
     )
 
 
 def _add_table_arg(parser):
     parser.add_argument(
-        "-t", "--table", default="Test",
+        "-t",
+        "--table",
+        default="Test",
         help="Grist table id (default: Test).",
     )
 
 
 def _add_complete_args(parser):
     parser.add_argument(
-        "--limit", type=int, default=None,
+        "--limit",
+        type=int,
+        default=None,
         help="Cap the number of rows completed (handy for testing).",
     )
     parser.add_argument(
-        "--dry-run", action="store_true",
+        "--dry-run",
+        action="store_true",
         help="Completion step only: compute the updates and log them, but do not "
         "write them back to Grist.",
     )
     parser.add_argument(
-        "--n-examples", type=int, default=15,
+        "--n-examples",
+        type=int,
+        default=15,
         help="Number of example category assignments sent to the LLM (default: 15).",
     )
 
 
 def _add_output_arg(parser):
     parser.add_argument(
-        "-o", "--output", default="veille.qmd",
+        "-o",
+        "--output",
+        default="veille.qmd",
         help="Name of the QMD output file (default: veille.qmd).",
     )
 
@@ -78,8 +89,8 @@ def cmd_complete(args):
 
 def cmd_extract_and_complete(args):
     """Extract from a Tchap export, then complete the (new) rows in one go."""
-    from src.extract import extract_and_add_to_veille
     from src.complete_table import complete_veille
+    from src.extract import extract_and_add_to_veille
 
     extract_and_add_to_veille(input_conv_file_path=args.file, target_table=args.table)
     complete_veille(
@@ -92,9 +103,9 @@ def cmd_extract_and_complete(args):
 
 def cmd_to_infolettre(args):
     """Extract selected links from Grist and create qmd infolettre."""
-    from src.complete_qmd import extract_rows_qmd
+    from src.complete_qmd import extract_append_commit
 
-    extract_rows_qmd(input_table=args.table, output_path=args.output)
+    extract_append_commit(input_table=args.table, output_path=args.output)
 
 
 # --------------------------------------------------------------------------- #
